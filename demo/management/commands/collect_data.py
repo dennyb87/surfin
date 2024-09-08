@@ -1,4 +1,3 @@
-
 from django.core.management.base import BaseCommand
 
 from demo.models import Spots
@@ -9,7 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for data_source in Spots.get_data_sources():
-            data_source.take_snapshot()
+            data = data_source.collect()
             self.stdout.write(
-                self.style.SUCCESS(f"Data collected for source {data_source}")
+                self.style.SUCCESS(f"Data collected for source {data_source}: {data}")
             )

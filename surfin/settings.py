@@ -24,10 +24,11 @@ env_config = dotenv_values(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env_config['SECRET_KEY']
+SECRET_KEY = env_config["SECRET_KEY"]
+METEONETWORK_API_TOKEN = env_config["METEONETWORK_API_TOKEN"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env_config['DEBUG'] == "True"
+DEBUG = env_config["DEBUG"] == "True"
 
 ALLOWED_HOSTS = ["surfin.duckdns.org"]
 

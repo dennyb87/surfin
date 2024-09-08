@@ -3,59 +3,55 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
+from meteonetwork_api.client import MeteoNetworkClient
+
+from surfin import settings
+
 
 class AbstractDataSource(ABC):
+    @property
+    def requires_spot(self):
+        pass
+
     @abstractmethod
-    def take_snapshot(self):
+    def collect(self):
+        pass
+
+    @abstractmethod
+    def store(self):
         pass
 
 
+@dataclass
 class BuoyStation(AbstractDataSource):
-    def take_snapshot(self):
+    uid: str
+
+    def collect(self):
+        pass
+
+    def store(self):
         pass
 
 
-class MeteoNetworkStation(AbstractDataSource):
-    id: str
+@dataclass
+class MeteoNetworkIRTDomain(AbstractDataSource):
+    """Interpolated Real Time"""
 
-    d = {
-        "observation_time_local": "2024-09-07 23:47:00",
-        "observation_time_utc": "2024-09-07 21:47:00",
-        "station_code": "tsc069",
-        "place": "Viareggio",
-        "area": "quartiere Marco Polo",
-        "latitude": "43.8913485567997",
-        "longitude": "10.2376549254404",
-        "altitude": 10,
-        "country": "IT",
-        "region_name": "Toscana",
-        "temperature": "24.9",
-        "smlp": "1013.4",
-        "rh": "82",
-        "wind_speed": "0.00",
-        "wind_direction": "ENE",
-        "wind_direction_degree": "70",
-        "wind_gust": "27.40",
-        "rain_rate": "0.0",
-        "daily_rain": "0.0",
-        "dew_point": "21.7",
-        "rad": None,
-        "uv": None,
-        "current_tmin": "18.9",
-        "current_tmed": "25.1",
-        "current_tmax": "31.1",
-        "current_rhmin": "55",
-        "current_rhmed": "73",
-        "current_rhmax": "84",
-        "current_wgustmax": "27.4",
-        "current_wspeedmax": "17.7",
-        "current_wspeedmed": "2.6",
-        "current_uvmed": None,
-        "current_uvmax": None,
-        "current_radmed": None,
-        "current_radmax": None,
-        "name": "Viareggio - quartiere Marco Polo",
-    }
+    location: "Location"
+
+    def fetch(self):
+        client = MeteoNetworkClient(access_token=settings.METEONETWORK_API_TOKEN)
+        return client.interpolated_real_time_data(
+            lat=self.location.lat, lon=self.location.lon
+        )
+
+    def collect(self):
+        data = self.fetch()
+        return self.store(data)
+
+    def store(self, data):
+        # MeteoNetworkIRT.objects.create()
+        return data
 
 
 class Webcam(AbstractDataSource):
@@ -63,19 +59,44 @@ class Webcam(AbstractDataSource):
 
 
 @dataclass
-class Spot:
-    id: str
+class Location:
     name: str
+    lat: str
+    lon: str
+
+
+class Locations(Enum):
+    FORTE_DEI_MARMI_PONTILE = Location(
+        name="Pontile Forte dei Marmi",
+        lat="43.956894",
+        lon="10.165571",
+    )
+
+
+@dataclass
+class Spot:
+    location: "Location"
     data_sources: List["AbstractDataSource"]
+
+    def load_dataframe(self):
+        for source in self.data_sources:
+            data = source.load_dataframe()
 
 
 class Spots(Enum):
     FORTE_DEI_MARMI_PONTILE = Spot(
-        id="111", name="Pontile Forte dei Marmi", data_sources=[BuoyStation()]
+        location=Locations.FORTE_DEI_MARMI_PONTILE.value,
+        data_sources=[
+            MeteoNetworkIRTDomain(location=Locations.FORTE_DEI_MARMI_PONTILE.value),
+            BuoyStation(uid="T01"),
+        ],
     )
 
     @classmethod
     def get_data_sources(cls) -> List["AbstractDataSource"]:
-        # Should grab all unique data sources
-        # but for now there's only one spot so...
-        return Spots.FORTE_DEI_MARMI_PONTILE.value.data_sources
+        sources = []
+        for spot in cls:
+            for source in spot.value.data_sources:
+                if source not in sources:
+                    sources.append(source)
+        return sources

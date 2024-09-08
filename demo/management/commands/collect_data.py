@@ -12,3 +12,5 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f"Data collected for source {data_source}: {data}")
             )
+        for spot in Spots:
+            spot_data = spot.value.take_snapshot()

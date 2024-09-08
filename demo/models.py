@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import List
 
+from django.db import models
 from meteonetwork_api.client import MeteoNetworkClient
 
 from surfin import settings
@@ -35,7 +36,7 @@ class BuoyStation(AbstractDataSource):
 
 @dataclass
 class MeteoNetworkIRTDomain(AbstractDataSource):
-    """Interpolated Real Time"""
+    """Interpolated Real Time at location"""
 
     location: "Location"
 
@@ -73,14 +74,35 @@ class Locations(Enum):
     )
 
 
+class SpotSnapshot(models.Model):
+    pass
+
+
+@dataclass
+class SpotSnapshotDomain:
+    data_set: List["SourceData"]
+
+    @classmethod
+    def from_orm_obj(cls, orm_obj: "SpotSnapshot") -> "SpotSnapshotDomain":
+        return
+
+    @classmethod
+    def create_from(cls, spot: "Spot") -> "SpotSnapshotDomain":
+        data_set = []
+        for source in spot.data_sources:
+            data = source.load_data()
+            data_set.append(data)
+        snapshot = SpotSnapshot.objects.create()
+        return cls.from_orm_obj(snapshot)
+
+
 @dataclass
 class Spot:
     location: "Location"
     data_sources: List["AbstractDataSource"]
 
-    def load_dataframe(self):
-        for source in self.data_sources:
-            data = source.load_dataframe()
+    def take_snapshot(self):
+        return SpotSnapshotDomain.create_from(self)
 
 
 class Spots(Enum):
@@ -100,3 +122,10 @@ class Spots(Enum):
                 if source not in sources:
                     sources.append(source)
         return sources
+
+
+class WaveType(IntEnum):
+    FLAT = 0
+    LESSON = 1
+    LONGBOARD = 2
+    SHORTBOARD = 3

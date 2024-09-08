@@ -26,6 +26,7 @@ env_config = dotenv_values(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env_config["SECRET_KEY"]
 METEONETWORK_API_TOKEN = env_config["METEONETWORK_API_TOKEN"]
+WINDY_WEBCAMS_API_KEY = env_config["WINDY_WEBCAMS_API_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_config["DEBUG"] == "True"
@@ -46,6 +47,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "demo",
+    "spots",
+    "meteonetwork",
+    "windy",
 ]
 
 MIDDLEWARE = [
@@ -84,8 +88,12 @@ WSGI_APPLICATION = "surfin.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "surfin",
+        "USER": env_config["POSTGRES_USER"],
+        "PASSWORD": env_config["POSTGRES_PASSWORD"],
+        "HOST": "localhost",
+        "PORT": "",
     }
 }
 

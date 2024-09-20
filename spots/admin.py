@@ -14,6 +14,7 @@ class SpotSnapshotAdmin(admin.ModelAdmin):
 
     list_display = ["__str__", "has_assessment"]
 
+    @admin.display(boolean=True)
     def has_assessment(self, obj):
         try:
             return obj.snapshotassessment is not None
@@ -29,11 +30,9 @@ class SpotSnapshotAdmin(admin.ModelAdmin):
                 level=messages.WARNING,
             )
         else:
-            spot_id = queryset.values_list("spot_id", flat=True).first()
-            url = reverse(
-                "admin:spots_snapshotassessment_add", kwargs={"object_id": spot_id}
-            )
-            return HttpResponseRedirect(url)
+            snapshot_id = queryset.values_list("id", flat=True).first()
+            url = reverse("admin:spots_snapshotassessment_add")
+            return HttpResponseRedirect(f"{url}?snapshot={snapshot_id}")
 
 
 class SnapshotAssessmentAdmin(admin.ModelAdmin):
@@ -42,3 +41,4 @@ class SnapshotAssessmentAdmin(admin.ModelAdmin):
 
 admin.site.register(Spot, SpotAdmin)
 admin.site.register(SpotSnapshot, SpotSnapshotAdmin)
+admin.site.register(SnapshotAssessment, SnapshotAssessmentAdmin)

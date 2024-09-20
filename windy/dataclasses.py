@@ -1,7 +1,10 @@
 from dataclasses import dataclass
+from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, List, Optional
 
+from django.core.files import File
 from django.utils import timezone
+import requests
 from windy_webcams_api.v3.client import WindyWebcamsClient
 from windy_webcams_api.v3.constants import WebcamFeature
 
@@ -18,7 +21,7 @@ if TYPE_CHECKING:
 @dataclass
 class WindyWebcamDataDomain:
     pk: Optional[int]
-    created: "datatime"
+    created: "datetime"
     spot: "SpotDomain"
     windy_webcam_id: int
     title: str
@@ -57,6 +60,11 @@ class WindyWebcamDataDomain:
     def from_raw_data(
         cls, raw_data: dict, created: "datetime", spot: "SpotDomain"
     ) -> "WindyWebcamDataDomain":
+        preview_url = raw_data["images"]["current"]["preview"]
+        raw_preview = requests.get(preview_url).content
+        with NamedTemporaryFile() as tmp_file:
+            tmp_file.write(raw_preview)
+            preview = File(tmp_file)
         return cls(
             pk=None,
             created=created,
@@ -66,7 +74,7 @@ class WindyWebcamDataDomain:
             view_count=raw_data["viewCount"],
             status=raw_data["status"],
             last_updated_on=raw_data["lastUpdatedOn"],
-            preview=raw_data["images"]["current"]["preview"],
+            preview=preview,
         )
 
 
@@ -108,7 +116,7 @@ class WindyWebcamService:
 
 
 class WindyWebcamDataSetDomain(List["WindyWebcamDataDomain"]):
-    def for_spot(self, spot: "SpotDomain") -> "WindyWindyWebcamDataDomain":
+    def for_spot(self, spot: "SpotDomain") -> "WindyWebcamDataDomain":
         data = [data for data in self if data.spot.pk == spot.pk]
         assert len(data) == 1
         return data[0]

@@ -21,7 +21,7 @@ class SpotSetDomain(List["SpotDomain"]):
         # self.refresh_buoy()
         windy_webcam_data = WindyWebcamService.get_current_webcam(self)
         meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(self)
-
+        # cft_buoy_data = CFTBuoyService.get_current_data()
         snapshots = []
         for spot in self:
             snapshot = SpotSnapshotDomain.take_snapshot(

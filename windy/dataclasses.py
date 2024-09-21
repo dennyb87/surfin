@@ -30,8 +30,12 @@ class WindyWebcamDataDomain:
     last_updated_on: str
     preview: str
 
-    def to_orm_obj(self) -> WindyWebcamData:
-        return WindyWebcamData(
+    def persist(self) -> WindyWebcamData:
+        raw_preview = requests.get(self.preview).content
+        tmp_file = NamedTemporaryFile()
+        tmp_file.write(raw_preview)
+        preview = File(tmp_file)
+        obj = WindyWebcamData(
             created=self.created,
             spot=Spot.objects.get(id=self.spot.pk),
             windy_webcam_id=self.windy_webcam_id,
@@ -39,8 +43,9 @@ class WindyWebcamDataDomain:
             view_count=self.view_count,
             status=self.status,
             last_updated_on=self.last_updated_on,
-            preview=self.preview,
         )
+        obj.preview.save(name="windy.jpg", content=preview)
+        return obj
 
     @classmethod
     def from_orm_obj(cls, orm_obj: WindyWebcamData):
@@ -61,10 +66,6 @@ class WindyWebcamDataDomain:
         cls, raw_data: dict, created: "datetime", spot: "SpotDomain"
     ) -> "WindyWebcamDataDomain":
         preview_url = raw_data["images"]["current"]["preview"]
-        raw_preview = requests.get(preview_url).content
-        with NamedTemporaryFile() as tmp_file:
-            tmp_file.write(raw_preview)
-            preview = File(tmp_file)
         return cls(
             pk=None,
             created=created,
@@ -74,7 +75,7 @@ class WindyWebcamDataDomain:
             view_count=raw_data["viewCount"],
             status=raw_data["status"],
             last_updated_on=raw_data["lastUpdatedOn"],
-            preview=preview,
+            preview=preview_url,
         )
 
 
@@ -106,9 +107,7 @@ class WindyWebcamService:
     @classmethod
     def get_current_webcam(cls, spots: "SpotSetDomain") -> "WindyWebcamSetDomain":
         webcam_data_set = cls.fetch_webcam_data(spots)
-        orm_objs = WindyWebcamData.objects.bulk_create(
-            data.to_orm_obj() for data in webcam_data_set
-        )
+        orm_objs = [data.persist() for data in webcam_data_set]
         domain_objs = [
             WindyWebcamDataDomain.from_orm_obj(orm_obj) for orm_obj in orm_objs
         ]

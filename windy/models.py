@@ -1,5 +1,7 @@
 from django.db import models
 
+from surfin import settings
+
 
 # Create your models here.
 class WindyWebcamData(models.Model):
@@ -10,4 +12,4 @@ class WindyWebcamData(models.Model):
     view_count = models.IntegerField()
     status = models.CharField(max_length=1000)
     last_updated_on = models.CharField(max_length=1000)
-    preview = models.ImageField(upload_to="windy_webcam_previews")
+    preview = models.ImageField(upload_to=settings.WINDY_WEBCAM_PREVIEWS_ROOT)

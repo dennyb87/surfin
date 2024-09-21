@@ -135,6 +135,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "static/"
 
+MEDIA_URL = "/media/"
+WINDY_WEBCAM_PREVIEWS_ROOT = "windy_webcam_previews"
+WINDY_WEBCAM_PREVIEWS_URL = MEDIA_URL + WINDY_WEBCAM_PREVIEWS_ROOT
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 

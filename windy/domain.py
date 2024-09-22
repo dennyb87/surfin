@@ -1,10 +1,10 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, List, Optional
 
+import requests
 from django.core.files import File
 from django.utils import timezone
-import requests
 from windy_webcams_api.v3.client import WindyWebcamsClient
 from windy_webcams_api.v3.constants import WebcamFeature
 

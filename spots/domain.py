@@ -1,6 +1,5 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
-import json
 from typing import TYPE_CHECKING, List
 
 from django.db import transaction

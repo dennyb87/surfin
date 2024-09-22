@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, List
 
 from django.db import transaction
 
+from cftoscana.domain import CFTBuoyService
 from meteonetwork.domain import MeteoNetworkIRTDataDomain, MeteoNetworkService
 from spots.models import Spot, SpotSnapshot
 from windy.domain import WindyWebcamDataDomain, WindyWebcamService
@@ -17,11 +18,12 @@ class SpotSetDomain(List["SpotDomain"]):
         spots = [spot for spot in self if spot.windy_webcam_id == webcam_id]
         return spots[0]
 
+    @transaction.atomic
     def take_snapshots(self) -> List["SnapshotDomain"]:
         # self.refresh_buoy()
-        windy_webcam_data = WindyWebcamService.get_current_webcam(self)
-        meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(self)
-        # cft_buoy_data = CFTBuoyService.get_current_data()
+        windy_webcam_data = WindyWebcamService.get_current_webcam(spots=self)
+        meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(spots=self)
+        cft_buoy_data = CFTBuoyService().get_current_data(spots=self)
         snapshots = []
         for spot in self:
             snapshot = SpotSnapshotDomain.take_snapshot(
@@ -43,6 +45,7 @@ class SpotDomain:
     lat: str
     lon: str
     windy_webcam_id: str
+    cft_buoy_station_id: str
 
     def to_dict(self):
         return asdict(self)
@@ -58,6 +61,7 @@ class SpotDomain:
             lat=orm_obj.lat,
             lon=orm_obj.lon,
             windy_webcam_id=orm_obj.windy_webcam_id,
+            cft_buoy_station_id=orm_obj.cft_buoy_station_id,
         )
 
     @classmethod

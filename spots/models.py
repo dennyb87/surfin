@@ -12,6 +12,7 @@ class Spot(models.Model):
     lon = models.CharField(max_length=1000)
     created = models.DateTimeField(auto_now_add=True)
     windy_webcam_id = models.IntegerField()
+    cft_buoy_station_id = models.CharField(max_length=1000)
 
     def __str__(self):
         return f"{self.name} #{self.pk}"

@@ -11,7 +11,7 @@ from spots.models import Spot
 from surfin import settings
 
 if TYPE_CHECKING:
-    from spots.dataclasses import SpotDomain, SpotSetDomain
+    from spots.domain import SpotDomain, SpotSetDomain
 
 
 @dataclass
@@ -45,6 +45,13 @@ class MeteoNetworkIRTDataDomain:
     current_uvmax: Optional[str]
     current_radmed: Optional[str]
     current_radmax: Optional[str]
+
+    def to_dict(self):
+        return {
+            "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
+            "spot_id": self.spot.pk,
+            "temperature": str(self.temperature),
+        }
 
     def to_orm_obj(self):
         return MeteoNetworkIRTData(

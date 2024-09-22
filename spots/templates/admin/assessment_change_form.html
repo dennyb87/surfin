@@ -1,0 +1,16 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+{% block after_related_objects %}
+    {{ block.super }}
+    {% for section, content in snapshot_data.items %}
+        <h3>{{ section }}</h3>
+        {% for feature, value in content.items %}
+            {% if feature == "preview" %}
+                <img src="{{ value }}" width="520" height="auto">
+            {% else %}
+                <li><b>{{ feature }}</b>: {{ value }}</li>
+            {% endif %}
+        {% endfor %}        
+    {% endfor %}
+    <div style="padding: 20px"></div>
+{% endblock %}

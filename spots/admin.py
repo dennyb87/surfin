@@ -1,7 +1,10 @@
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponse
 from django.urls import reverse
 
+from spots.domain import SpotSnapshotDomain
 from spots.models import SnapshotAssessment, Spot, SpotSnapshot
 
 
@@ -36,7 +39,29 @@ class SpotSnapshotAdmin(admin.ModelAdmin):
 
 
 class SnapshotAssessmentAdmin(admin.ModelAdmin):
-    pass
+    change_form_template = "admin/assessment_change_form.html"
+
+    def change_view(
+        self,
+        request: HttpRequest,
+        object_id: str,
+        form_url: str = "",
+        extra_context=None,
+    ) -> HttpResponse:
+        extra_context = extra_context or {}
+        orm_obj = SnapshotAssessment.objects.get(id=int(object_id)).snapshot
+        snapshot = SpotSnapshotDomain.from_orm_obj(orm_obj)
+        extra_context["snapshot_data"] = snapshot.to_assessment_format()
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def add_view(
+        self, request: HttpRequest, form_url: str = "", extra_context=None
+    ) -> HttpResponse:
+        extra_context = extra_context or {}
+        orm_obj = SpotSnapshot.objects.get(id=int(request.GET["snapshot"]))
+        snapshot = SpotSnapshotDomain.from_orm_obj(orm_obj)
+        extra_context["snapshot_data"] = snapshot.to_assessment_format()
+        return super().add_view(request, form_url=form_url, extra_context=extra_context)
 
 
 admin.site.register(Spot, SpotAdmin)

@@ -1,15 +1,16 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
+import json
 from typing import TYPE_CHECKING, List
 
 from django.db import transaction
 
-from meteonetwork.dataclasses import MeteoNetworkIRTDataDomain, MeteoNetworkService
+from meteonetwork.domain import MeteoNetworkIRTDataDomain, MeteoNetworkService
 from spots.models import Spot, SpotSnapshot
-from windy.dataclasses import WindyWebcamDataDomain, WindyWebcamService
+from windy.domain import WindyWebcamDataDomain, WindyWebcamService
 
 if TYPE_CHECKING:
-    from spots.dataclasses import SpotDomain
+    from spots.domain import SpotDomain
 
 
 class SpotSetDomain(List["SpotDomain"]):
@@ -44,6 +45,9 @@ class SpotDomain:
     lon: str
     windy_webcam_id: str
 
+    def to_dict(self):
+        return asdict(self)
+
     def take_snapshot(self):
         return SpotSnapshotDomain.create_from(self)
 
@@ -67,6 +71,7 @@ class SpotDomain:
 class SpotSnapshotDomain:
     pk: int
     created: "datetime"
+    spot: "SpotDomain"
     weather_data: "MeteoNetworkIRTDataDomain"
     windy_webcam_data: "WindyWebcamDataDomain"
 
@@ -74,9 +79,14 @@ class SpotSnapshotDomain:
     def from_orm_obj(cls, orm_obj: "SpotSnapshot"):
         return cls(
             pk=orm_obj.pk,
+            spot=SpotDomain.from_orm_obj(orm_obj.spot),
             created=orm_obj.created,
-            weather_data=orm_obj.meteonetwork_irt_data,
-            windy_webcam_data=orm_obj.windy_webcam_data,
+            weather_data=MeteoNetworkIRTDataDomain.from_orm_obj(
+                orm_obj.meteonetwork_irt_data
+            ),
+            windy_webcam_data=WindyWebcamDataDomain.from_orm_obj(
+                orm_obj.windy_webcam_data
+            ),
         )
 
     @classmethod
@@ -93,3 +103,10 @@ class SpotSnapshotDomain:
             windy_webcam_data_id=windy_webcam_data.pk,
         )
         return cls.from_orm_obj(orm_obj)
+
+    def to_assessment_format(self):
+        return {
+            "spot": self.spot.to_dict(),
+            "weather": self.weather_data.to_dict(),
+            "webcam": self.windy_webcam_data.to_dict(),
+        }

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from spots.dataclasses import SpotDomain
+from spots.domain import SpotDomain
 
 
 class Command(BaseCommand):

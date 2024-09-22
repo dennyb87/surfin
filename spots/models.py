@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
+
+if TYPE_CHECKING:
+    from meteonetwork.models import MeteoNetworkIRTData
 
 
 class Spot(models.Model):
@@ -15,7 +20,7 @@ class Spot(models.Model):
 class SpotSnapshot(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     spot = models.ForeignKey("spots.Spot", on_delete=models.PROTECT)
-    meteonetwork_irt_data = models.ForeignKey(
+    meteonetwork_irt_data: "MeteoNetworkIRTData" = models.ForeignKey(
         "meteonetwork.MeteoNetworkIRTData", on_delete=models.PROTECT
     )
     windy_webcam_data = models.ForeignKey(

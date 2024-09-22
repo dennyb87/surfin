@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, List, Optional
 
@@ -29,6 +29,17 @@ class WindyWebcamDataDomain:
     status: str
     last_updated_on: str
     preview: str
+
+    def to_dict(self):
+        return {
+            "pk": self.pk,
+            "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
+            "windy_webcam_id": self.windy_webcam_id,
+            "title": self.title,
+            "status": self.status,
+            "last_updated_on": self.last_updated_on,
+            "preview": self.preview.url,
+        }
 
     def persist(self) -> WindyWebcamData:
         raw_preview = requests.get(self.preview).content

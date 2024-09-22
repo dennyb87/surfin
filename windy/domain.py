@@ -15,7 +15,7 @@ from windy.models import WindyWebcamData
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from spots.dataclasses import SpotDomain, SpotSetDomain
+    from spots.domain import SpotDomain, SpotSetDomain
 
 
 @dataclass

@@ -12,4 +12,4 @@ class WindyWebcamData(models.Model):
     view_count = models.IntegerField()
     status = models.CharField(max_length=1000)
     last_updated_on = models.CharField(max_length=1000)
-    preview = models.ImageField(upload_to=settings.WINDY_WEBCAM_PREVIEWS_ROOT)
+    preview = models.ImageField(upload_to=settings.WINDY_WEBCAMS_ROOT)

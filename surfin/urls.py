@@ -29,6 +29,6 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(
-        settings.WINDY_WEBCAM_PREVIEWS_URL,
-        document_root=settings.WINDY_WEBCAM_PREVIEWS_ROOT,
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT,
     )

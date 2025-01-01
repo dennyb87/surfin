@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "spots",
     "meteonetwork",
     "windy",
+    "cftoscana",
 ]
 
 MIDDLEWARE = [

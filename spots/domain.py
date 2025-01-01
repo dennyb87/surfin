@@ -23,13 +23,14 @@ class SpotSetDomain(List["SpotDomain"]):
         # self.refresh_buoy()
         windy_webcam_data = WindyWebcamService.get_current_webcam(spots=self)
         meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(spots=self)
-        cft_buoy_data = CFTBuoyService().get_current_data(spots=self)
+        cft_buoy_data = CFTBuoyService.get_current_data(spots=self)
         snapshots = []
         for spot in self:
-            snapshot = SpotSnapshotDomain.take_snapshot(
+            snapshot = SpotSnapshotDomain.create_from_data(
                 spot=spot,
                 meteonetwork_irt_data=meteonetwork_irt_data.for_spot(spot),
                 windy_webcam_data=windy_webcam_data.for_spot(spot),
+                # cft_buoy_data=cft_buoy_data.for_spot(spot),
             )
             snapshots.append(snapshot)
         return snapshots
@@ -94,7 +95,7 @@ class SpotSnapshotDomain:
 
     @classmethod
     @transaction.atomic
-    def take_snapshot(
+    def create_from_data(
         cls,
         spot: "SpotDomain",
         meteonetwork_irt_data: "MeteoNetworkIRTDataDomain",

@@ -26,4 +26,9 @@ class CFTBuoyData(models.Model):
     created = models.DateTimeField(default=timezone.now)
     as_of = models.DateTimeField()
     station = models.ForeignKey(CFTBuoyStation, on_delete=models.PROTECT)
-    data = models.JSONField()
+    wave_height = models.JSONField()
+    period = models.JSONField()
+    direction = models.JSONField()
+
+    def __str__(self):
+        return f"{dict(Stations.choices)[self.station.station_uid]} {self.created} #{self.pk}"

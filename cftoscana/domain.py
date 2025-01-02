@@ -1,19 +1,24 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, List, TypedDict
 
 from cft_buoy_data_extractor.client import CFTBuoyDataExtractor
-from cft_buoy_data_extractor.constants import Graph, SignificantWaveHeight, Station
+from cft_buoy_data_extractor.constants import (
+    Graph,
+    PeakDirection,
+    PeakPeriod,
+    SignificantWaveHeight,
+    Station,
+)
 from django.utils import timezone
 
 from cftoscana.models import CFTBuoyData, CFTBuoyStation
 
 if TYPE_CHECKING:
-    from spots.domain import SpotSetDomain, SpotDomain
+    from spots.domain import SpotDomain, SpotSetDomain
 
 
-@dataclass
-class CFTBuoyRawData:
+class CFTBuoyRawData(TypedDict):
     x: list[float]
     y: list[float]
 
@@ -34,30 +39,36 @@ class CFTBuoyStationDomain:
             station_uid=orm_obj.station_uid,
         )
 
-    def fetch_data(self, graphs: list["Graph"]) -> "dict[Graph.type, CFTBuoyRawData]":
-        data = {}
-        for graph in graphs:
-            client = CFTBuoyDataExtractor(
-                station=self.station,
-                graph=graph,
-            )
-            graph_data = client.get_station_data()
-            data[graph.type] = graph_data
-        return data
+    def fetch_data(self, graph: "Graph") -> CFTBuoyRawData:
+        client = CFTBuoyDataExtractor(
+            station=self.station,
+            graph=graph,
+        )
+        data = client.get_station_data()
+        return CFTBuoyRawData(x=data["x"], y=data["y"])
 
     def take_snapshot(self, as_of: datetime) -> "CFTBuoyDataDomain":
         start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
         hours = int((as_of - start_of_day).seconds / 3600)
-        graphs = [
-            SignificantWaveHeight(date=as_of.date().strftime("%d/%m/%Y"), hours=hours)
-        ]
-        data = self.fetch_data(graphs=graphs)
+
+        graph_dirp = PeakDirection(date=as_of.date().strftime("%d/%m/%Y"), hours=hours)
+        graph_tp = PeakPeriod(date=as_of.date().strftime("%d/%m/%Y"), hours=hours)
+        graph_hm0 = SignificantWaveHeight(
+            date=as_of.date().strftime("%d/%m/%Y"), hours=hours
+        )
+
+        wave_height = self.fetch_data(graph=graph_hm0)
+        period = self.fetch_data(graph=graph_tp)
+        direction = self.fetch_data(graph=graph_dirp)
+
         return CFTBuoyDataDomain(
             pk=None,
             created=None,
             as_of=as_of,
             station=self,
-            data=data,
+            wave_height=wave_height,
+            period=period,
+            direction=direction,
         )
 
 
@@ -66,7 +77,9 @@ class CFTBuoyDataDomain:
     station: "CFTBuoyStation"
     created: datetime
     as_of: datetime
-    data: "dict[Graph.type, CFTBuoyRawData]"
+    wave_height: "CFTBuoyRawData"
+    period: "CFTBuoyRawData"
+    direction: "CFTBuoyRawData"
     pk: "int | None" = None
 
     @classmethod
@@ -76,7 +89,9 @@ class CFTBuoyDataDomain:
             station=orm_obj.station,
             created=orm_obj.created,
             as_of=orm_obj.as_of,
-            data=orm_obj.data,
+            wave_height=orm_obj.wave_height,
+            period=orm_obj.period,
+            direction=orm_obj.direction,
         )
 
     def to_orm_obj(self):
@@ -84,7 +99,9 @@ class CFTBuoyDataDomain:
             pk=self.pk,
             station_id=self.station.pk,
             as_of=self.as_of,
-            data=self.data,
+            wave_height=self.wave_height,
+            period=self.period,
+            direction=self.direction,
         )
 
 

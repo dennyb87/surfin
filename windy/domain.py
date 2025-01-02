@@ -8,9 +8,8 @@ from django.utils import timezone
 from windy_webcams_api.v3.client import WindyWebcamsClient
 from windy_webcams_api.v3.constants import WebcamFeature
 
-from spots.models import Spot
 from surfin import settings
-from windy.models import WindyWebcamData
+from windy.models import WindyWebcam, WindyWebcamData
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -22,8 +21,7 @@ if TYPE_CHECKING:
 class WindyWebcamDataDomain:
     pk: Optional[int]
     created: "datetime"
-    spot: "SpotDomain"
-    windy_webcam_id: int
+    webcam: "WindyWebcam"
     title: str
     view_count: int
     status: str
@@ -34,8 +32,7 @@ class WindyWebcamDataDomain:
         return {
             "pk": self.pk,
             "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
-            "windy_webcam_id": self.windy_webcam_id,
-            "title": self.title,
+            "webcam": self.webcam,
             "status": self.status,
             "last_updated_on": self.last_updated_on,
             "preview": self.preview.url,
@@ -48,8 +45,7 @@ class WindyWebcamDataDomain:
         preview = File(tmp_file)
         obj = WindyWebcamData(
             created=self.created,
-            spot=Spot.objects.get(id=self.spot.pk),
-            windy_webcam_id=self.windy_webcam_id,
+            webcam=self.webcam,
             title=self.title,
             view_count=self.view_count,
             status=self.status,
@@ -63,8 +59,7 @@ class WindyWebcamDataDomain:
         return cls(
             pk=orm_obj.pk,
             created=orm_obj.created,
-            spot=Spot.objects.get(id=orm_obj.spot_id),
-            windy_webcam_id=orm_obj.windy_webcam_id,
+            webcam=orm_obj.webcam,
             title=orm_obj.title,
             view_count=orm_obj.view_count,
             status=orm_obj.status,
@@ -74,14 +69,13 @@ class WindyWebcamDataDomain:
 
     @classmethod
     def from_raw_data(
-        cls, raw_data: dict, created: "datetime", spot: "SpotDomain"
+        cls, raw_data: dict, created: "datetime", webcam: "WindyWebcam"
     ) -> "WindyWebcamDataDomain":
         preview_url = raw_data["images"]["current"]["preview"]
         return cls(
             pk=None,
             created=created,
-            spot=spot,
-            windy_webcam_id=raw_data["webcamId"],
+            webcam=webcam,
             title=raw_data["title"],
             view_count=raw_data["viewCount"],
             status=raw_data["status"],
@@ -96,10 +90,13 @@ class WindyWebcamSetDomain(List["WindyWebcamDataDomain"]):
 
 class WindyWebcamService:
     @classmethod
-    def fetch_webcam_data(cls, spots: "SpotSetDomain"):
-        client = WindyWebcamsClient(api_key=settings.WINDY_WEBCAMS_API_KEY)
-        webcam_ids = [str(spot.windy_webcam_id) for spot in spots]
+    def fetch_webcam_data(cls, spots: "SpotSetDomain") -> "list[WindyWebcamDataDomain]":
+        webcams = WindyWebcam.objects.filter(spot__in=[s.pk for s in spots])
+        webcam_uid_to_orm_obj = {cam.windy_uid: cam for cam in webcams}
+        webcam_ids = [str(uid) for uid in webcam_uid_to_orm_obj.keys()]
         assert len(webcam_ids) > 0
+
+        client = WindyWebcamsClient(api_key=settings.WINDY_WEBCAMS_API_KEY)
         data = client.webcams(
             webcam_ids=webcam_ids,
             features=[WebcamFeature.images],
@@ -110,7 +107,7 @@ class WindyWebcamService:
             webcam = WindyWebcamDataDomain.from_raw_data(
                 raw_data=webcam_data,
                 created=timezone.now(),
-                spot=spots.get_spot_by_windy_webcam(webcam_id),
+                webcam=webcam_uid_to_orm_obj[webcam_id],
             )
             webcams.append(webcam)
         return webcams
@@ -126,7 +123,11 @@ class WindyWebcamService:
 
 
 class WindyWebcamDataSetDomain(List["WindyWebcamDataDomain"]):
+    class WindyWebcamDataNotFoundForSpot(Exception):
+        pass
+
     def for_spot(self, spot: "SpotDomain") -> "WindyWebcamDataDomain":
-        data = [data for data in self if data.spot.pk == spot.pk]
-        assert len(data) == 1
-        return data[0]
+        for data in self:
+            if spot.pk == data.webcam.spot.pk:
+                return data
+        return self.WindyWebcamDataNotFoundForSpot(f"{spot}")

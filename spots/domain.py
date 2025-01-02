@@ -1,10 +1,11 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, List
 
 from django.db import transaction
 
-from cftoscana.domain import CFTBuoyService
+from cftoscana.domain import CFTBuoyDataDomain, CFTBuoyService
 from meteonetwork.domain import MeteoNetworkIRTDataDomain, MeteoNetworkService
 from spots.models import Spot, SpotSnapshot
 from windy.domain import WindyWebcamDataDomain, WindyWebcamService
@@ -14,10 +15,6 @@ if TYPE_CHECKING:
 
 
 class SpotSetDomain(List["SpotDomain"]):
-    def get_spot_by_windy_webcam(self, webcam_id: str) -> "SpotDomain":
-        spots = [spot for spot in self if spot.windy_webcam_id == webcam_id]
-        return spots[0]
-
     @transaction.atomic
     def take_snapshots(self) -> List["SnapshotDomain"]:
         # self.refresh_buoy()
@@ -30,7 +27,7 @@ class SpotSetDomain(List["SpotDomain"]):
                 spot=spot,
                 meteonetwork_irt_data=meteonetwork_irt_data.for_spot(spot),
                 windy_webcam_data=windy_webcam_data.for_spot(spot),
-                # cft_buoy_data=cft_buoy_data.for_spot(spot),
+                cft_buoy_data=cft_buoy_data.for_spot(spot),
             )
             snapshots.append(snapshot)
         return snapshots
@@ -45,8 +42,6 @@ class SpotDomain:
     name: str
     lat: str
     lon: str
-    windy_webcam_id: str
-    cft_buoy_station_id: str
 
     def to_dict(self):
         return asdict(self)
@@ -61,8 +56,6 @@ class SpotDomain:
             name=orm_obj.name,
             lat=orm_obj.lat,
             lon=orm_obj.lon,
-            windy_webcam_id=orm_obj.windy_webcam_id,
-            cft_buoy_station_id=orm_obj.cft_buoy_station_id,
         )
 
     @classmethod
@@ -100,11 +93,13 @@ class SpotSnapshotDomain:
         spot: "SpotDomain",
         meteonetwork_irt_data: "MeteoNetworkIRTDataDomain",
         windy_webcam_data: "WindyWebcamDataDomain",
+        cft_buoy_data: "CFTBuoyDataDomain",
     ) -> "SpotSnapshotDomain":
         orm_obj = SpotSnapshot.objects.create(
             spot_id=spot.pk,
             meteonetwork_irt_data_id=meteonetwork_irt_data.pk,
             windy_webcam_data_id=windy_webcam_data.pk,
+            cft_buoy_data_id=cft_buoy_data.pk,
         )
         return cls.from_orm_obj(orm_obj)
 

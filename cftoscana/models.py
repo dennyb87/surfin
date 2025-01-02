@@ -1,5 +1,6 @@
 from cft_buoy_data_extractor.constants import Station as StationEnum
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 
@@ -19,3 +20,10 @@ class CFTBuoyStation(models.Model):
 
     def __str__(self):
         return f"{dict(Stations.choices)[self.station_uid]} - {self.station_uid}"
+
+
+class CFTBuoyData(models.Model):
+    created = models.DateTimeField(default=timezone.now)
+    as_of = models.DateTimeField()
+    station = models.ForeignKey(CFTBuoyStation, on_delete=models.PROTECT)
+    data = models.JSONField()

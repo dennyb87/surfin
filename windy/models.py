@@ -1,13 +1,22 @@
 from django.db import models
+from django.utils import timezone
 
 from surfin import settings
 
 
-# Create your models here.
-class WindyWebcamData(models.Model):
-    created = models.DateTimeField(auto_now_add=True)
+class WindyWebcam(models.Model):
+    created = models.DateTimeField(default=timezone.now())
+    windy_uid = models.IntegerField(unique=True)
+    name = models.CharField(max_length=1000, unique=True)
     spot = models.ForeignKey("spots.Spot", on_delete=models.PROTECT)
-    windy_webcam_id = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.__class__.__name__} {self.name} {self.windy_uid} #{self.pk}"
+
+
+class WindyWebcamData(models.Model):
+    created = models.DateTimeField(default=timezone.now())
+    webcam = models.ForeignKey(WindyWebcam, on_delete=models.PROTECT)
     title = models.CharField(max_length=1000)
     view_count = models.IntegerField()
     status = models.CharField(max_length=1000)

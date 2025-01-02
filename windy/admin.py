@@ -1,10 +1,13 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
-from windy.models import WindyWebcamData
+from windy.models import WindyWebcam, WindyWebcamData
 
 
-# Register your models here.
+class WindyWebcamAdmin(admin.ModelAdmin):
+    pass
+
+
 class WindyWebcamDataAdmin(admin.ModelAdmin):
     readonly_fields = ["thumbnail"]
 
@@ -13,4 +16,5 @@ class WindyWebcamDataAdmin(admin.ModelAdmin):
         return mark_safe(img_tag)
 
 
+admin.site.register(WindyWebcam, WindyWebcamAdmin)
 admin.site.register(WindyWebcamData, WindyWebcamDataAdmin)

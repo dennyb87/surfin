@@ -11,3 +11,5 @@ typing_extensions==4.11.0
 pre-commit==3.5.0
 psycopg2-binary==2.9.10
 cft-buoy-data-extractor @ git+https://github.com/dennyb87/cft-buoy-data-extractor@main
+windy-webcams-api-client @ git+https://github.com/dennyb87/windy-webcams-api-client-python@main
+meteonetwork-api-client @ git+https://github.com/dennyb87/meteonetwork-api-client-python@main

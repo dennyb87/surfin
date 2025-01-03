@@ -5,7 +5,7 @@ from surfin import settings
 
 
 class WindyWebcam(models.Model):
-    created = models.DateTimeField(default=timezone.now())
+    created = models.DateTimeField(default=timezone.now)
     windy_uid = models.IntegerField(unique=True)
     name = models.CharField(max_length=1000, unique=True)
     spot = models.ForeignKey("spots.Spot", on_delete=models.PROTECT)

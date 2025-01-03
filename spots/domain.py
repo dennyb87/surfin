@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class SpotSetDomain(List["SpotDomain"]):
     @transaction.atomic
-    def take_snapshots(self) -> List["SnapshotDomain"]:
+    def take_snapshots(self) -> List["SpotSnapshotDomain"]:
         # self.refresh_buoy()
         windy_webcam_data = WindyWebcamService.get_current_webcam(spots=self)
         meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(spots=self)
@@ -45,9 +45,6 @@ class SpotDomain:
 
     def to_dict(self):
         return asdict(self)
-
-    def take_snapshot(self):
-        return SpotSnapshotDomain.create_from(self)
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "Spot"):

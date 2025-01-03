@@ -1,9 +1,7 @@
 from unittest.mock import patch
 
 import responses
-from dateutil.relativedelta import relativedelta
 from django.test import TestCase
-from freezegun import freeze_time
 
 from cftoscana.tests.factories import CFTBuoyStationFactory
 from spots.domain import SpotDomain, SpotSetDomain, SpotSnapshotDomain

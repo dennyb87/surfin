@@ -15,7 +15,7 @@ class WindyWebcam(models.Model):
 
 
 class WindyWebcamData(models.Model):
-    created = models.DateTimeField(default=timezone.now())
+    created = models.DateTimeField(default=timezone.now)
     webcam = models.ForeignKey(WindyWebcam, on_delete=models.PROTECT)
     title = models.CharField(max_length=1000)
     view_count = models.IntegerField()

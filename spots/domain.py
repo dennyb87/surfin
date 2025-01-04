@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, List
 from django.db import transaction
 
 from cftoscana.domain import CFTBuoyDataDomain, CFTBuoyService
+from ipcamlive.domain import IPCamLiveService
 from meteonetwork.domain import MeteoNetworkIRTDataDomain, MeteoNetworkService
 from spots.models import Spot, SpotSnapshot
 from windy.domain import WindyWebcamDataDomain, WindyWebcamService
@@ -18,6 +19,8 @@ class SpotSetDomain(List["SpotDomain"]):
     @transaction.atomic
     def take_snapshots(self) -> List["SpotSnapshotDomain"]:
         # self.refresh_buoy()
+        ipcamlive_data = IPCamLiveService.get_current_data(spots=self)
+        breakpoint()
         windy_webcam_data = WindyWebcamService.get_current_webcam(spots=self)
         meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(spots=self)
         cft_buoy_data = CFTBuoyService.get_current_data(spots=self)

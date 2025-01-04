@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "meteonetwork",
     "windy",
     "cftoscana",
+    "ipcamlive",
 ]
 
 MIDDLEWARE = [
@@ -141,6 +142,9 @@ MEDIA_ROOT = BASE_DIR / MEDIA_URL
 
 WINDY_WEBCAMS_ROOT = "windy_webcams"  # Relative to MEDIA_ROOT
 WINDY_WEBCAMS_URL = MEDIA_URL + WINDY_WEBCAMS_ROOT
+
+IPCAMLIVE_ROOT = "ipcamlive"
+IPCAMLIVE_URL = MEDIA_URL + IPCAMLIVE_ROOT
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

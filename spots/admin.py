@@ -3,7 +3,9 @@ from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
 from django.urls import reverse
+from django.utils.safestring import mark_safe
 
+from spots.constants import WaveSizeScore
 from spots.domain import SpotSnapshotDomain
 from spots.models import SnapshotAssessment, Spot, SpotSnapshot
 
@@ -40,6 +42,13 @@ class SpotSnapshotAdmin(admin.ModelAdmin):
 
 class SnapshotAssessmentAdmin(admin.ModelAdmin):
     change_form_template = "admin/assessment_change_form.html"
+    readonly_fields = ["wave_size_reference"]
+
+    def wave_size_reference(self, obj):
+        img_tag = (
+            f'<img src="{WaveSizeScore.reference_image}" width="120" height="auto" >'
+        )
+        return mark_safe(img_tag)
 
     def change_view(
         self,

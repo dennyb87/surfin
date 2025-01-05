@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 class CFTBuoyRawData(TypedDict):
     x: list[float]
     y: list[float]
+    unit: str
 
 
 @dataclass
@@ -48,7 +49,7 @@ class CFTBuoyStationDomain:
             graph=graph,
         )
         data = client.get_station_data()
-        return CFTBuoyRawData(x=data["x"], y=data["y"])
+        return CFTBuoyRawData(x=data["x"], y=data["y"], unit=graph.unit)
 
     def take_snapshot(self, as_of: datetime) -> "CFTBuoyDataDomain":
         start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -88,12 +89,15 @@ class CFTBuoyDataDomain:
     direction: "CFTBuoyRawData"
 
     def to_assessment_view(self):
+        wave_height = f"{self.wave_height['y'][-1]} {self.wave_height['unit']}"
+        direction = f"{self.direction['y'][-1]} {self.direction['unit']}"
+        period = f"{self.period['y'][-1]} {self.period['unit']}"
         return {
             "station": self.station,
             "as_of": self.as_of,
-            "wave_height": self.wave_height["y"][-1],
-            "direction": self.direction["y"][-1],
-            "period": self.period["y"][-1],
+            "wave_height": wave_height,
+            "direction": direction,
+            "period": period,
         }
 
     @classmethod

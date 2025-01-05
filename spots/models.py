@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-from spots.constants import WaveSizeScore
+from spots.constants import SurfQualityScore, WaveSizeScore
 
 
 if TYPE_CHECKING:
@@ -40,4 +40,12 @@ class SnapshotAssessment(models.Model):
             MaxValueValidator(WaveSizeScore.MAX_SCORE),
         ],
         help_text=WaveSizeScore.help_text,
+    )
+    surf_quality_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        validators=[
+            MinValueValidator(SurfQualityScore.MIN_SCORE),
+            MaxValueValidator(SurfQualityScore.MAX_SCORE),
+        ],
     )

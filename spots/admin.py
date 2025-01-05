@@ -51,7 +51,7 @@ class SnapshotAssessmentAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         orm_obj = SnapshotAssessment.objects.get(id=int(object_id)).snapshot
         snapshot = SpotSnapshotDomain.from_orm_obj(orm_obj)
-        extra_context["snapshot_data"] = snapshot.to_assessment_format()
+        extra_context["snapshot_data"] = snapshot.to_assessment_view()
         return super().change_view(request, object_id, form_url, extra_context)
 
     def add_view(
@@ -60,7 +60,7 @@ class SnapshotAssessmentAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         orm_obj = SpotSnapshot.objects.get(id=int(request.GET["snapshot"]))
         snapshot = SpotSnapshotDomain.from_orm_obj(orm_obj)
-        extra_context["snapshot_data"] = snapshot.to_assessment_format()
+        extra_context["snapshot_data"] = snapshot.to_assessment_view()
         return super().add_view(request, form_url=form_url, extra_context=extra_context)
 
 

@@ -1,12 +1,11 @@
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from decimal import Decimal
 from typing import TYPE_CHECKING, List
 
 from django.db import transaction
 
 from cftoscana.domain import CFTBuoyDataDomain, CFTBuoyService
-from ipcamlive.domain import IPCamLiveService
+from ipcamlive.domain import IPCamLiveDataDomain, IPCamLiveService
 from meteonetwork.domain import MeteoNetworkIRTDataDomain, MeteoNetworkService
 from spots.models import Spot, SpotSnapshot
 from windy.domain import WindyWebcamDataDomain, WindyWebcamService
@@ -18,16 +17,16 @@ if TYPE_CHECKING:
 class SpotSetDomain(List["SpotDomain"]):
     @transaction.atomic
     def take_snapshots(self) -> List["SpotSnapshotDomain"]:
-        # self.refresh_buoy()
         ipcamlive_data = IPCamLiveService.get_current_data(spots=self)
-        breakpoint()
-        windy_webcam_data = WindyWebcamService.get_current_webcam(spots=self)
-        meteonetwork_irt_data = MeteoNetworkService.get_current_irt_data(spots=self)
+        windy_webcam_data = WindyWebcamService.get_current_data(spots=self)
+        meteonetwork_irt_data = MeteoNetworkService.get_current_data(spots=self)
         cft_buoy_data = CFTBuoyService.get_current_data(spots=self)
+
         snapshots = []
         for spot in self:
             snapshot = SpotSnapshotDomain.create_from_data(
                 spot=spot,
+                ipcamlive_data=ipcamlive_data.for_spot(spot),
                 meteonetwork_irt_data=meteonetwork_irt_data.for_spot(spot),
                 windy_webcam_data=windy_webcam_data.for_spot(spot),
                 cft_buoy_data=cft_buoy_data.for_spot(spot),
@@ -69,8 +68,6 @@ class SpotSnapshotDomain:
     pk: int
     created: "datetime"
     spot: "SpotDomain"
-    weather_data: "MeteoNetworkIRTDataDomain"
-    windy_webcam_data: "WindyWebcamDataDomain"
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "SpotSnapshot"):
@@ -78,12 +75,6 @@ class SpotSnapshotDomain:
             pk=orm_obj.pk,
             spot=SpotDomain.from_orm_obj(orm_obj.spot),
             created=orm_obj.created,
-            weather_data=MeteoNetworkIRTDataDomain.from_orm_obj(
-                orm_obj.meteonetwork_irt_data
-            ),
-            windy_webcam_data=WindyWebcamDataDomain.from_orm_obj(
-                orm_obj.windy_webcam_data
-            ),
         )
 
     @classmethod
@@ -91,21 +82,31 @@ class SpotSnapshotDomain:
     def create_from_data(
         cls,
         spot: "SpotDomain",
+        ipcamlive_data: "IPCamLiveDataDomain",
         meteonetwork_irt_data: "MeteoNetworkIRTDataDomain",
         windy_webcam_data: "WindyWebcamDataDomain",
         cft_buoy_data: "CFTBuoyDataDomain",
     ) -> "SpotSnapshotDomain":
-        orm_obj = SpotSnapshot.objects.create(
-            spot_id=spot.pk,
-            meteonetwork_irt_data_id=meteonetwork_irt_data.pk,
-            windy_webcam_data_id=windy_webcam_data.pk,
-            cft_buoy_data_id=cft_buoy_data.pk,
-        )
-        return cls.from_orm_obj(orm_obj)
+        snapshot_orm = SpotSnapshot.objects.create(spot_id=spot.pk)
 
-    def to_assessment_format(self):
+        ipcamlive_data.persist(snapshot_orm)
+        meteonetwork_irt_data.persist(snapshot_orm)
+        windy_webcam_data.persist(snapshot_orm)
+        cft_buoy_data.persist(snapshot_orm)
+
+        return cls.from_orm_obj(snapshot_orm)
+
+    def to_assessment_view(self):
+        meteonetwork_data = MeteoNetworkIRTDataDomain.load_for_snapshot(
+            snapshot_id=self.pk
+        )
+        cft_buoy_data = CFTBuoyDataDomain.load_for_snapshot(snapshot_id=self.pk)
+        windy_webcam_data = WindyWebcamDataDomain.load_for_snapshot(snapshot_id=self.pk)
+        iplivecam_data = IPCamLiveDataDomain.load_for_snapshot(snapshot_id=self.pk)
         return {
             "spot": self.spot.to_dict(),
-            "weather": self.weather_data.to_dict(),
-            "webcam": self.windy_webcam_data.to_dict(),
+            "meteonetwork": meteonetwork_data.to_assessment_view(),
+            "cft_buoy": cft_buoy_data.to_assessment_view(),
+            "windy_webcam": windy_webcam_data.to_assessment_view(),
+            "iplivecam": iplivecam_data.to_assessment_view(),
         }

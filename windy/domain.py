@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 import requests
 from django.core.files import File
 from django.utils import timezone
+from spots.models import SpotSnapshot
 from windy_webcams_api.v3.client import WindyWebcamsClient
 from windy_webcams_api.v3.constants import WebcamFeature
 
@@ -26,9 +27,10 @@ class WindyWebcamDataDomain:
     view_count: int
     status: str
     last_updated_on: str
-    preview: str
+    preview: File
+    snapshot: Optional[SpotSnapshot]
 
-    def to_dict(self):
+    def to_assessment_view(self):
         return {
             "pk": self.pk,
             "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
@@ -38,11 +40,7 @@ class WindyWebcamDataDomain:
             "preview": self.preview.url,
         }
 
-    def persist(self) -> WindyWebcamData:
-        raw_preview = requests.get(self.preview).content
-        tmp_file = NamedTemporaryFile()
-        tmp_file.write(raw_preview)
-        preview = File(tmp_file)
+    def persist(self, snapshot) -> WindyWebcamData:
         obj = WindyWebcamData(
             created=self.created,
             webcam=self.webcam,
@@ -50,14 +48,21 @@ class WindyWebcamDataDomain:
             view_count=self.view_count,
             status=self.status,
             last_updated_on=self.last_updated_on,
+            snapshot=snapshot,
         )
-        obj.preview.save(name="windy.jpg", content=preview)
+        obj.preview.save(name="windy.jpg", content=self.preview)
         return obj
+
+    @classmethod
+    def load_for_snapshot(cls, snapshot_id: int):
+        orm_obj = WindyWebcamData.objects.get(snapshot_id=snapshot_id)
+        return cls.from_orm_obj(orm_obj)
 
     @classmethod
     def from_orm_obj(cls, orm_obj: WindyWebcamData):
         return cls(
             pk=orm_obj.pk,
+            snapshot=orm_obj.snapshot,
             created=orm_obj.created,
             webcam=orm_obj.webcam,
             title=orm_obj.title,
@@ -68,19 +73,24 @@ class WindyWebcamDataDomain:
         )
 
     @classmethod
-    def from_raw_data(
-        cls, raw_data: dict, created: "datetime", webcam: "WindyWebcam"
+    def from_data(
+        cls, data: dict, created: "datetime", webcam: "WindyWebcam"
     ) -> "WindyWebcamDataDomain":
-        preview_url = raw_data["images"]["current"]["preview"]
+        preview_url = data["images"]["current"]["preview"]
+        raw_preview = requests.get(preview_url).content
+        tmp_file = NamedTemporaryFile()
+        tmp_file.write(raw_preview)
+        preview = File(tmp_file)
         return cls(
             pk=None,
             created=created,
             webcam=webcam,
-            title=raw_data["title"],
-            view_count=raw_data["viewCount"],
-            status=raw_data["status"],
-            last_updated_on=raw_data["lastUpdatedOn"],
-            preview=preview_url,
+            title=data["title"],
+            view_count=data["viewCount"],
+            status=data["status"],
+            last_updated_on=data["lastUpdatedOn"],
+            preview=preview,
+            snapshot=None,
         )
 
 
@@ -104,8 +114,8 @@ class WindyWebcamService:
         webcams = []
         for webcam_data in data["webcams"]:
             webcam_id = webcam_data["webcamId"]
-            webcam = WindyWebcamDataDomain.from_raw_data(
-                raw_data=webcam_data,
+            webcam = WindyWebcamDataDomain.from_data(
+                data=webcam_data,
                 created=timezone.now(),
                 webcam=webcam_uid_to_orm_obj[webcam_id],
             )
@@ -113,13 +123,9 @@ class WindyWebcamService:
         return webcams
 
     @classmethod
-    def get_current_webcam(cls, spots: "SpotSetDomain") -> "WindyWebcamSetDomain":
-        webcam_data_set = cls.fetch_webcam_data(spots)
-        orm_objs = [data.persist() for data in webcam_data_set]
-        domain_objs = [
-            WindyWebcamDataDomain.from_orm_obj(orm_obj) for orm_obj in orm_objs
-        ]
-        return WindyWebcamDataSetDomain(domain_objs)
+    def get_current_data(cls, spots: "SpotSetDomain") -> "WindyWebcamDataSetDomain":
+        data_set = cls.fetch_webcam_data(spots)
+        return WindyWebcamDataSetDomain(data_set)
 
 
 class WindyWebcamDataSetDomain(List["WindyWebcamDataDomain"]):
@@ -130,4 +136,4 @@ class WindyWebcamDataSetDomain(List["WindyWebcamDataDomain"]):
         for data in self:
             if spot.pk == data.webcam.spot.pk:
                 return data
-        return self.WindyWebcamDataNotFoundForSpot(f"{spot}")
+        raise self.WindyWebcamDataNotFoundForSpot(f"{spot}")

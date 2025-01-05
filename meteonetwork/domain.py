@@ -7,18 +7,18 @@ from django.utils import timezone
 from meteonetwork_api.client import MeteoNetworkClient
 
 from meteonetwork.models import MeteoNetworkIRTData
-from spots.models import Spot
 from surfin import settings
 
 if TYPE_CHECKING:
     from spots.domain import SpotDomain, SpotSetDomain
+    from spots.models import SpotSnapshot
 
 
 @dataclass
 class MeteoNetworkIRTDataDomain:
     pk: Optional[int]
+    snapshot: "Optional[SpotSnapshot]"
     created: "datetime"
-    spot: "SpotDomain"
     lat: str
     lon: str
     temperature: str
@@ -46,34 +46,19 @@ class MeteoNetworkIRTDataDomain:
     current_radmed: Optional[str]
     current_radmax: Optional[str]
 
-    def to_dict(self):
+    def to_assessment_view(self):
         return {
             "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
-            "spot_id": self.spot.pk,
-            "temperature": str(self.temperature),
+            "temperature": self.temperature,
+            "wind_direction": self.wind_direction,
+            "wind_speed": self.wind_speed,
         }
-
-    def to_orm_obj(self):
-        return MeteoNetworkIRTData(
-            spot=Spot.objects.get(id=self.spot.pk),
-            lat=self.lat,
-            lon=self.lon,
-            temperature=Decimal(self.temperature),
-            rh=Decimal(self.rh),
-            dew_point=Decimal(self.dew_point),
-            daily_rain=Decimal(self.daily_rain) if self.daily_rain else None,
-            smlp=Decimal(self.smlp),
-            wind_direction=Decimal(self.wind_direction),
-            wind_direction_cardinal=self.wind_direction_cardinal,
-            wind_speed=Decimal(self.wind_speed),
-            distance=Decimal(self.distance),
-        )
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "MeteoNetworkIRTData"):
         return cls(
             pk=orm_obj.pk,
-            spot=orm_obj.spot,
+            snapshot=orm_obj.snapshot,
             created=orm_obj.created,
             lat=orm_obj.lat,
             lon=orm_obj.lon,
@@ -103,9 +88,25 @@ class MeteoNetworkIRTDataDomain:
             current_radmax=None,
         )
 
+    def persist(self, snapshot: "SpotSnapshot") -> MeteoNetworkIRTData:
+        return MeteoNetworkIRTData.objects.create(
+            lat=self.lat,
+            lon=self.lon,
+            temperature=Decimal(self.temperature),
+            rh=Decimal(self.rh),
+            dew_point=Decimal(self.dew_point),
+            daily_rain=Decimal(self.daily_rain) if self.daily_rain else None,
+            smlp=Decimal(self.smlp),
+            wind_direction=Decimal(self.wind_direction),
+            wind_direction_cardinal=self.wind_direction_cardinal,
+            wind_speed=Decimal(self.wind_speed),
+            distance=Decimal(self.distance),
+            snapshot=snapshot,
+        )
+
     @classmethod
-    def latest_for_spot(cls, spot: "SpotDomain"):
-        orm_obj = MeteoNetworkIRTData.objects.filter(spot_id=spot.pk).latest("created")
+    def load_for_snapshot(cls, snapshot_id: int):
+        orm_obj = MeteoNetworkIRTData.objects.get(snapshot_id=snapshot_id)
         return cls.from_orm_obj(orm_obj)
 
 
@@ -117,30 +118,29 @@ class MeteoNetworkService:
     def fetch_irt_data(cls, spot: "SpotDomain") -> "MeteoNetworkIRTDataDomain":
         client = MeteoNetworkClient(access_token=settings.METEONETWORK_API_TOKEN)
         data = client.interpolated_real_time_data(lat=spot.lat, lon=spot.lon)
+        # no need lat/lon from api but saving lat/lon input instead!
+        data.pop("lat")
+        data.pop("lon")
         return MeteoNetworkIRTDataDomain(
-            pk=None, created=timezone.now(), spot=spot, **data
+            pk=None,
+            snapshot=None,
+            created=timezone.now(),
+            lat=spot.lat,
+            lon=spot.lon,
+            **data
         )
 
     @classmethod
-    def get_current_irt_data(
-        cls, spots: "SpotSetDomain"
-    ) -> "MeteoNetworkIRTDataSetDomain":
+    def get_current_data(cls, spots: "SpotSetDomain") -> "MeteoNetworkIRTDataSetDomain":
         data_set: List["MeteoNetworkIRTDataDomain"] = []
         for spot in spots:
             data = cls.fetch_irt_data(spot)
             data_set.append(data)
-
-        orm_objs = MeteoNetworkIRTData.objects.bulk_create(
-            data.to_orm_obj() for data in data_set
-        )
-        domain_objs = [
-            MeteoNetworkIRTDataDomain.from_orm_obj(orm_obj) for orm_obj in orm_objs
-        ]
-        return MeteoNetworkIRTDataSetDomain(domain_objs)
+        return MeteoNetworkIRTDataSetDomain(data_set)
 
 
 class MeteoNetworkIRTDataSetDomain(List["MeteoNetworkIRTDataDomain"]):
     def for_spot(self, spot: "SpotDomain") -> "MeteoNetworkIRTDataDomain":
-        data = [data for data in self if data.spot.pk == spot.pk]
+        data = [data for data in self if data.lat == spot.lat and data.lon == spot.lon]
         assert len(data) == 1
         return data[0]

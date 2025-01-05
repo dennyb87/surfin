@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class Spot(models.Model):
-    name = models.CharField(max_length=1000)
+    name = models.CharField(max_length=1000, unique=True)
     lat = models.CharField(max_length=1000)
     lon = models.CharField(max_length=1000)
     created = models.DateTimeField(auto_now_add=True)
@@ -24,13 +24,6 @@ class Spot(models.Model):
 class SpotSnapshot(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     spot = models.ForeignKey("spots.Spot", on_delete=models.PROTECT)
-    meteonetwork_irt_data: "MeteoNetworkIRTData" = models.ForeignKey(
-        "meteonetwork.MeteoNetworkIRTData", on_delete=models.PROTECT
-    )
-    windy_webcam_data = models.ForeignKey(
-        "windy.WindyWebcamData", on_delete=models.PROTECT
-    )
-    cft_buoy_data = models.ForeignKey("cftoscana.CFTBuoyData", on_delete=models.PROTECT)
 
     def __str__(self):
         return f"Snapshot {self.spot.name} {self.created} #{self.pk}"

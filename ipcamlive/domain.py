@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING
 
 import requests
 from django.core.files import File
+from django.utils import timezone
 
 from ipcamlive.models import IPCamLiveData, IPCamLiveWebcam
 
 if TYPE_CHECKING:
-    from spots.domain import SpotSetDomain
+    from spots.domain import SpotDomain, SpotSetDomain
+    from spots.models import Spot, SpotSnapshot
 
 
 @dataclass
@@ -18,6 +20,7 @@ class IPCamLiveWebcamDomain:
     created: datetime
     alias: str
     name: str
+    spot: "Spot"
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "IPCamLiveWebcam"):
@@ -26,6 +29,7 @@ class IPCamLiveWebcamDomain:
             created=orm_obj.created,
             alias=orm_obj.alias,
             name=orm_obj.name,
+            spot=orm_obj.spot,
         )
 
     def get_preview(self):
@@ -37,32 +41,64 @@ class IPCamLiveWebcamDomain:
         tmp_file = NamedTemporaryFile()
         tmp_file.write(raw_preview)
         preview = File(tmp_file)
-        obj = IPCamLiveData(
-            created=self.created,
-            webcam_id=self.pk,
+        return IPCamLiveDataDomain(
+            pk=None,
+            snapshot=None,
+            created=timezone.now(),
+            webcam=self,
+            preview=preview,
         )
-        obj.preview.save(name="ipcamlive.jpg", content=preview)
-        return IPCamLiveDataDomain.from_orm_obj(obj)
 
 
-@dataclass
 class IPCamLiveDataSetDomain(list[IPCamLiveWebcamDomain]):
-    pass
+    class IPCamLiveDataNotFoundForSpot(Exception):
+        pass
+
+    def for_spot(self, spot: "SpotDomain") -> "IPCamLiveDataDomain":
+        for data in self:
+            if spot.pk == data.webcam.spot.pk:
+                return data
+        raise self.IPCamLiveDataNotFoundForSpot(f"{spot}")
 
 
 @dataclass
 class IPCamLiveDataDomain:
+    pk: int
+    snapshot: "SpotSnapshot"
     created: datetime
     webcam: "IPCamLiveWebcam"
-    preview: str
+    preview: File
+
+    def to_assessment_view(self):
+        return {
+            "created": self.created,
+            "webcam": self.webcam,
+            "preview": self.preview.url,
+        }
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "IPCamLiveData"):
         return cls(
+            pk=orm_obj.pk,
+            snapshot=orm_obj.snapshot,
             created=orm_obj.created,
             webcam=orm_obj.webcam,
             preview=orm_obj.preview,
         )
+
+    def persist(self, snapshot: "SpotSnapshot") -> IPCamLiveData:
+        obj = IPCamLiveData(
+            created=self.created,
+            snapshot=snapshot,
+            webcam_id=self.webcam.pk,
+        )
+        obj.preview.save(name="ipcamlive.jpg", content=self.preview)
+        return self.from_orm_obj(obj)
+
+    @classmethod
+    def load_for_snapshot(cls, snapshot_id: int):
+        orm_obj = IPCamLiveData.objects.get(snapshot_id=snapshot_id)
+        return cls.from_orm_obj(orm_obj)
 
 
 class IPCamLiveService:
@@ -74,4 +110,4 @@ class IPCamLiveService:
             iplivecam = IPCamLiveWebcamDomain.from_orm_obj(webcam)
             data = iplivecam.fetch_data()
             data_set.append(data)
-        return data_set
+        return IPCamLiveDataSetDomain(data_set)

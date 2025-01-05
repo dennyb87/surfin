@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, List, TypedDict
+from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cft_buoy_data_extractor.client import CFTBuoyDataExtractor
 from cft_buoy_data_extractor.constants import (
@@ -16,6 +16,7 @@ from cftoscana.models import CFTBuoyData, CFTBuoyStation
 
 if TYPE_CHECKING:
     from spots.domain import SpotDomain, SpotSetDomain
+    from spots.models import Spot, SpotSnapshot
 
 
 class CFTBuoyRawData(TypedDict):
@@ -27,6 +28,7 @@ class CFTBuoyRawData(TypedDict):
 class CFTBuoyStationDomain:
     pk: "int | None"
     station_uid: str
+    spots_orm: "list[Spot]"
 
     @property
     def station(self):
@@ -37,6 +39,7 @@ class CFTBuoyStationDomain:
         return cls(
             pk=orm_obj.pk,
             station_uid=orm_obj.station_uid,
+            spots_orm=orm_obj.spots.all(),
         )
 
     def fetch_data(self, graph: "Graph") -> CFTBuoyRawData:
@@ -63,6 +66,7 @@ class CFTBuoyStationDomain:
 
         return CFTBuoyDataDomain(
             pk=None,
+            snapshot=None,
             created=None,
             as_of=as_of,
             station=self,
@@ -74,18 +78,29 @@ class CFTBuoyStationDomain:
 
 @dataclass
 class CFTBuoyDataDomain:
-    station: "CFTBuoyStation"
+    pk: Optional[int]
+    snapshot: "Optional[SpotSnapshot]"
+    station: "CFTBuoyStationDomain"
     created: datetime
     as_of: datetime
     wave_height: "CFTBuoyRawData"
     period: "CFTBuoyRawData"
     direction: "CFTBuoyRawData"
-    pk: "int | None" = None
+
+    def to_assessment_view(self):
+        return {
+            "station": self.station,
+            "as_of": self.as_of,
+            "wave_height": self.wave_height["y"][-1],
+            "direction": self.direction["y"][-1],
+            "period": self.period["y"][-1],
+        }
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "CFTBuoyData"):
         return cls(
             pk=orm_obj.pk,
+            snapshot=orm_obj.snapshot,
             station=orm_obj.station,
             created=orm_obj.created,
             as_of=orm_obj.as_of,
@@ -94,15 +109,21 @@ class CFTBuoyDataDomain:
             direction=orm_obj.direction,
         )
 
-    def to_orm_obj(self):
-        return CFTBuoyData(
+    def persist(self, snapshot: "SpotSnapshot") -> "CFTBuoyData":
+        return CFTBuoyData.objects.create(
             pk=self.pk,
             station_id=self.station.pk,
             as_of=self.as_of,
             wave_height=self.wave_height,
             period=self.period,
             direction=self.direction,
+            snapshot=snapshot,
         )
+
+    @classmethod
+    def load_for_snapshot(cls, snapshot_id: int):
+        orm_obj = CFTBuoyData.objects.get(snapshot_id=snapshot_id)
+        return cls.from_orm_obj(orm_obj)
 
 
 class CFTBuoyDataSetDomain(List["CFTBuoyDataDomain"]):
@@ -111,10 +132,10 @@ class CFTBuoyDataSetDomain(List["CFTBuoyDataDomain"]):
 
     def for_spot(self, spot: "SpotDomain") -> "CFTBuoyDataDomain":
         for data in self:
-            spot_ids = [s.pk for s in data.station.spots.all()]
+            spot_ids = [s.pk for s in data.station.spots_orm]
             if spot.pk in spot_ids:
                 return data
-        return self.BuoyDataNotFoundForSpot(f"{spot}")
+        raise self.BuoyDataNotFoundForSpot(f"{spot}")
 
 
 class CFTBuoyService:
@@ -134,9 +155,4 @@ class CFTBuoyService:
         for buoy_station in buoy_stations:
             data = buoy_station.take_snapshot(as_of=now)
             data_set.append(data)
-
-        orm_objs = CFTBuoyData.objects.bulk_create(
-            data.to_orm_obj() for data in data_set
-        )
-        domain_objs = [CFTBuoyDataDomain.from_orm_obj(orm_obj) for orm_obj in orm_objs]
-        return CFTBuoyDataSetDomain(domain_objs)
+        return CFTBuoyDataSetDomain(data_set)

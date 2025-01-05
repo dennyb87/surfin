@@ -3,7 +3,7 @@ from django.db import models
 
 class MeteoNetworkIRTData(models.Model):
     created = models.DateTimeField(auto_now_add=True)
-    spot = models.ForeignKey("spots.Spot", on_delete=models.PROTECT)
+    snapshot = models.ForeignKey("spots.SpotSnapshot", on_delete=models.CASCADE)
     lat = models.CharField(max_length=1000)
     lon = models.CharField(max_length=1000)
     temperature = models.DecimalField(max_digits=10, decimal_places=4)

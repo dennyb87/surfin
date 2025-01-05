@@ -24,6 +24,7 @@ class CFTBuoyStation(models.Model):
 
 class CFTBuoyData(models.Model):
     created = models.DateTimeField(default=timezone.now)
+    snapshot = models.ForeignKey("spots.SpotSnapshot", on_delete=models.CASCADE)
     as_of = models.DateTimeField()
     station = models.ForeignKey(CFTBuoyStation, on_delete=models.PROTECT)
     wave_height = models.JSONField()

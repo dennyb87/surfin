@@ -4,6 +4,7 @@ import responses
 from django.test import TestCase
 
 from cftoscana.tests.factories import CFTBuoyStationFactory
+from ipcamlive.tests.factories import IPCamLiveWebcamFactory
 from spots.domain import SpotDomain, SpotSetDomain, SpotSnapshotDomain
 from spots.models import SpotSnapshot
 from spots.tests.factories import SpotFactory
@@ -14,12 +15,14 @@ class SpotSetTakeSnapshotsTestCase(TestCase):
     def setUp(self):
         self.spot_orm = SpotFactory()
         self.spot = SpotDomain.from_orm_obj(self.spot_orm)
-        self.webcam_orm = WindyWebcamFactory(spot=self.spot_orm)
+        self.windy_webcam_orm = WindyWebcamFactory(spot=self.spot_orm)
+        self.ipcamlive_webcam_orm = IPCamLiveWebcamFactory(spot=self.spot_orm)
         self.buoy_station_orm = CFTBuoyStationFactory()
         self.buoy_station_orm.spots.add(self.spot_orm)
 
         self.spots = SpotSetDomain([self.spot])
 
+        self.ipcamlive_screenshot_uri = f"https://ipcamlive.com/player/snapshot.php?alias={self.ipcamlive_webcam_orm.alias}"
         self.windy_preview_uri = "https://api.windy.com/webcams/lovely_preview_uri.jpg"
         self.windy_resp = {
             "total": 1,
@@ -27,7 +30,7 @@ class SpotSetTakeSnapshotsTestCase(TestCase):
                 {
                     "title": "my lovely webcam",
                     "viewCount": 118484,
-                    "webcamId": self.webcam_orm.windy_uid,
+                    "webcamId": self.windy_webcam_orm.windy_uid,
                     "status": "active",
                     "lastUpdatedOn": "2024-04-20T16:04:09.000Z",
                     "images": {"current": {"preview": self.windy_preview_uri}},
@@ -71,7 +74,7 @@ class SpotSetTakeSnapshotsTestCase(TestCase):
         with responses.RequestsMock(assert_all_requests_are_fired=True) as rsps:
             rsps.add(
                 "GET",
-                f"https://api.windy.com/webcams/api/v3/webcams?limit=10&offset=0&webcamIds={self.webcam_orm.windy_uid}&include=images",
+                f"https://api.windy.com/webcams/api/v3/webcams?limit=10&offset=0&webcamIds={self.windy_webcam_orm.windy_uid}&include=images",
                 json=self.windy_resp,
                 status=200,
             )
@@ -85,6 +88,12 @@ class SpotSetTakeSnapshotsTestCase(TestCase):
                 "GET",
                 f"https://api.meteonetwork.it/v3/interpolated-realtime/?lat={self.spot.lat}&lon={self.spot.lon}",
                 json=self.meteonetwork_resp,
+                status=200,
+            )
+            rsps.add(
+                "GET",
+                self.ipcamlive_screenshot_uri,
+                body="dummy_ipcamlive_webcam_screenshot_payload",
                 status=200,
             )
             mock_get_station_data.return_value = {"x": [0, 1, 2], "y": [0, 1, 2]}

@@ -1,14 +1,7 @@
-from decimal import Decimal
-from typing import TYPE_CHECKING
-
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 from spots.constants import SurfQualityScore, WaveSizeScore
-
-
-if TYPE_CHECKING:
-    from meteonetwork.models import MeteoNetworkIRTData
 
 
 class Spot(models.Model):

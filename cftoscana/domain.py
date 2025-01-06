@@ -27,7 +27,7 @@ class CFTBuoyRawData(TypedDict):
 
 @dataclass
 class CFTBuoyStationDomain:
-    pk: "int | None"
+    pk: Optional[int]
     station_uid: str
     spots_orm: "list[Spot]"
 
@@ -82,7 +82,7 @@ class CFTBuoyDataDomain:
     pk: Optional[int]
     snapshot: "Optional[SpotSnapshot]"
     station: "CFTBuoyStationDomain"
-    created: datetime
+    created: Optional[datetime]
     as_of: datetime
     wave_height: "CFTBuoyRawData"
     period: "CFTBuoyRawData"

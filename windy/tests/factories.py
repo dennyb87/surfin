@@ -1,8 +1,6 @@
 import string
 
 import factory
-from django.utils import timezone
-from factory import fuzzy
 from factory.django import DjangoModelFactory
 
 from spots.tests.factories import SpotFactory

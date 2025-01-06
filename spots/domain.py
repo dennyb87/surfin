@@ -10,9 +10,6 @@ from meteonetwork.domain import MeteoNetworkIRTDataDomain, MeteoNetworkService
 from spots.models import Spot, SpotSnapshot
 from windy.domain import WindyWebcamDataDomain, WindyWebcamService
 
-if TYPE_CHECKING:
-    from spots.domain import SpotDomain
-
 
 class SpotSetDomain(List["SpotDomain"]):
     @transaction.atomic
@@ -34,9 +31,6 @@ class SpotSetDomain(List["SpotDomain"]):
             snapshots.append(snapshot)
         return snapshots
 
-    # def take_snapshots(self):
-    #     MeteoNetworkIRTDataDomain.latest_for_spots()
-
 
 @dataclass
 class SpotDomain:
@@ -51,7 +45,7 @@ class SpotDomain:
     @classmethod
     def from_orm_obj(cls, orm_obj: "Spot"):
         return cls(
-            pk=orm_obj.id,
+            pk=orm_obj.pk,
             name=orm_obj.name,
             lat=orm_obj.lat,
             lon=orm_obj.lon,

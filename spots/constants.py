@@ -19,17 +19,3 @@ class WaveSizeScore:
             DOUBLE_SHOULDER = 7
             DOUBLE_OVERHEAD = 8
     """
-
-
-class SurfQualityScore:
-    MIN_SCORE = Decimal("0.0")
-    MAX_SCORE = Decimal("6.0")
-    help_text = """
-        Try to assess surf quality where:
-            UNSURFABLE = 0
-            POOR = 2
-            FAIR = 3
-            GOOD = 4
-            GREAT = 5
-            EPIC = 6
-    """

@@ -1,5 +1,6 @@
 import factory
 from cft_buoy_data_extractor.constants import Station
+from factory import fuzzy
 from factory.django import DjangoModelFactory
 
 from cftoscana.models import CFTBuoyStation

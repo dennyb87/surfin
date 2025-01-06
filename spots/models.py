@@ -1,7 +1,7 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from spots.constants import SurfQualityScore, WaveSizeScore
+from spots.constants import WaveSizeScore
 
 
 class Spot(models.Model):
@@ -21,6 +21,13 @@ class SpotSnapshot(models.Model):
     def __str__(self):
         return f"Snapshot {self.spot.name} {self.created} #{self.pk}"
 
+    @property
+    def has_assessment(self):
+        try:
+            return self.snapshotassessment is not None
+        except SnapshotAssessment.DoesNotExist:
+            return False
+
 
 class SnapshotAssessment(models.Model):
     created = models.DateTimeField(auto_now_add=True)
@@ -33,12 +40,4 @@ class SnapshotAssessment(models.Model):
             MaxValueValidator(WaveSizeScore.MAX_SCORE),
         ],
         help_text=WaveSizeScore.help_text,
-    )
-    surf_quality_score = models.DecimalField(
-        max_digits=5,
-        decimal_places=4,
-        validators=[
-            MinValueValidator(SurfQualityScore.MIN_SCORE),
-            MaxValueValidator(SurfQualityScore.MAX_SCORE),
-        ],
     )

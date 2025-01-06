@@ -17,14 +17,11 @@ class SpotAdmin(admin.ModelAdmin):
 class SpotSnapshotAdmin(admin.ModelAdmin):
     actions = ["make_assessment"]
 
-    list_display = ["__str__", "has_assessment"]
+    list_display = ["__str__", "has_assessment", "create_assessment"]
 
     @admin.display(boolean=True)
     def has_assessment(self, obj):
-        try:
-            return obj.snapshotassessment is not None
-        except SnapshotAssessment.DoesNotExist:
-            return False
+        return obj.has_assessment
 
     @admin.action(description="Create a snapshot assessment")
     def make_assessment(self, request, queryset):
@@ -38,6 +35,11 @@ class SpotSnapshotAdmin(admin.ModelAdmin):
             snapshot_id = queryset.values_list("id", flat=True).first()
             url = reverse("admin:spots_snapshotassessment_add")
             return HttpResponseRedirect(f"{url}?snapshot={snapshot_id}")
+
+    def create_assessment(self, obj):
+        url = reverse("admin:spots_snapshotassessment_add")
+        if not obj.has_assessment:
+            return mark_safe(f"<a href={url}?snapshot={obj.pk}>create assessment</a>")
 
 
 class SnapshotAssessmentAdmin(admin.ModelAdmin):

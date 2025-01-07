@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+import math
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cft_buoy_data_extractor.client import CFTBuoyDataExtractor
@@ -88,13 +89,26 @@ class CFTBuoyDataDomain:
     period: "CFTBuoyRawData"
     direction: "CFTBuoyRawData"
 
+    @property
+    def data_delay(self) -> timedelta:
+        raw_hour = self.wave_height["x"][-1]
+        hour = math.floor(raw_hour)
+        minute = math.floor(raw_hour - hour)
+        last_datapoint_dt = self.as_of.replace(
+            hour=hour, minute=minute, second=0, microsecond=0
+        )
+        delay = self.as_of - last_datapoint_dt
+        return delay - timedelta(microseconds=delay.microseconds)
+
     def to_assessment_view(self):
         wave_height = f"{self.wave_height['y'][-1]} {self.wave_height['unit']}"
         direction = f"{self.direction['y'][-1]} {self.direction['unit']}"
         period = f"{self.period['y'][-1]} {self.period['unit']}"
+        data_hours_delay = round(self.data_delay.total_seconds() / 3600, 2)
         return {
             "station": self.station,
             "as_of": self.as_of,
+            "data_delay": f"{data_hours_delay} h",
             "wave_height": wave_height,
             "direction": direction,
             "period": period,

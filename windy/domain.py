@@ -1,20 +1,21 @@
 from dataclasses import dataclass
+from datetime import datetime
+from datetime import timezone as tz
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, List, Optional
 
 import requests
 from django.core.files import File
 from django.utils import timezone
-from spots.models import SpotSnapshot
+from django.utils.timezone import make_aware
 from windy_webcams_api.v3.client import WindyWebcamsClient
 from windy_webcams_api.v3.constants import WebcamFeature
 
+from spots.models import SpotSnapshot
 from surfin import settings
 from windy.models import WindyWebcam, WindyWebcamData
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
     from spots.domain import SpotDomain, SpotSetDomain
 
 
@@ -30,13 +31,18 @@ class WindyWebcamDataDomain:
     preview: File
     snapshot: Optional[SpotSnapshot]
 
+    @property
+    def aware_last_updated_on(self):
+        naive = datetime.strptime(self.last_updated_on, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return make_aware(naive, timezone=tz.utc)
+
     def to_assessment_view(self):
         return {
             "pk": self.pk,
-            "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
+            "created": self.created,
             "webcam": self.webcam,
             "status": self.status,
-            "last_updated_on": self.last_updated_on,
+            "last_updated_on": self.aware_last_updated_on,
             "preview": self.preview.url,
         }
 

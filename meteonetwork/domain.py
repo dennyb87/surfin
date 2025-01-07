@@ -48,7 +48,7 @@ class MeteoNetworkIRTDataDomain:
 
     def to_assessment_view(self):
         return {
-            "created": self.created.strftime("%m/%d/%Y, %H:%M:%S"),
+            "created": self.created,
             "temperature": self.temperature,
             "wind_direction": self.wind_direction,
             "wind_speed": self.wind_speed,

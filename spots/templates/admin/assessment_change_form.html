@@ -5,8 +5,10 @@
     {% for section, content in snapshot_data.items %}
         <h3>{{ section }}</h3>
         {% for feature, value in content.items %}
-            {% if feature == "preview" %}
-                <img src="{{ value }}" width="520" height="auto">
+            {% if feature == "preview" and section == "iplivecam" %}
+                <img src="{{ value }}" width="720" height="auto">
+            {% elif feature == "preview" %}
+                <img src="{{ value }}" width="420" height="auto">
             {% else %}
                 <li><b>{{ feature }}</b>: {{ value }}</li>
             {% endif %}

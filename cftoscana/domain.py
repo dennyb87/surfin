@@ -145,26 +145,21 @@ class CFTBuoyDataDomain:
         orm_obj = CFTBuoyData.objects.get(snapshot_id=snapshot_id)
         return cls.from_orm_obj(orm_obj)
 
-    def get_wave_height_at(self, as_of: datetime):
+    def get_feature_at(self, as_of: datetime, feature: CFTBuoyRawData):
         assert as_of.date() == self.as_of.date()
         start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
         hours = (as_of - start_of_day).seconds / 3600
-        df = pd.DataFrame({"y": self.wave_height["y"]}, index=self.wave_height["x"])
+        df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
         return df.iloc[df.index <= hours].iloc[-1].y
+
+    def get_wave_height_at(self, as_of: datetime):
+        return self.get_feature_at(as_of=as_of, feature=self.wave_height)
 
     def get_period(self, as_of: datetime):
-        assert as_of.date() == self.as_of.date()
-        start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
-        hours = (as_of - start_of_day).seconds / 3600
-        df = pd.DataFrame({"y": self.period["y"]}, index=self.period["x"])
-        return df.iloc[df.index <= hours].iloc[-1].y
+        return self.get_feature_at(as_of=as_of, feature=self.period)
 
     def get_direction(self, as_of: datetime):
-        assert as_of.date() == self.as_of.date()
-        start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
-        hours = (as_of - start_of_day).seconds / 3600
-        df = pd.DataFrame({"y": self.direction["y"]}, index=self.direction["x"])
-        return df.iloc[df.index <= hours].iloc[-1].y
+        return self.get_feature_at(as_of=as_of, feature=self.direction)
 
 
 class CFTBuoyDataSetDomain(List["CFTBuoyDataDomain"]):

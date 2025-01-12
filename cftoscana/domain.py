@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import math
 from typing import TYPE_CHECKING, List, Optional, TypedDict
+
+import pandas as pd
 
 from cft_buoy_data_extractor.client import CFTBuoyDataExtractor
 from cft_buoy_data_extractor.constants import (
@@ -143,6 +145,27 @@ class CFTBuoyDataDomain:
         orm_obj = CFTBuoyData.objects.get(snapshot_id=snapshot_id)
         return cls.from_orm_obj(orm_obj)
 
+    def get_wave_height_at(self, as_of: datetime):
+        assert as_of.date() == self.as_of.date()
+        start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
+        hours = (as_of - start_of_day).seconds / 3600
+        df = pd.DataFrame({"y": self.wave_height["y"]}, index=self.wave_height["x"])
+        return df.iloc[df.index <= hours].iloc[-1].y
+
+    def get_period(self, as_of: datetime):
+        assert as_of.date() == self.as_of.date()
+        start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
+        hours = (as_of - start_of_day).seconds / 3600
+        df = pd.DataFrame({"y": self.period["y"]}, index=self.period["x"])
+        return df.iloc[df.index <= hours].iloc[-1].y
+
+    def get_direction(self, as_of: datetime):
+        assert as_of.date() == self.as_of.date()
+        start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
+        hours = (as_of - start_of_day).seconds / 3600
+        df = pd.DataFrame({"y": self.direction["y"]}, index=self.direction["x"])
+        return df.iloc[df.index <= hours].iloc[-1].y
+
 
 class CFTBuoyDataSetDomain(List["CFTBuoyDataDomain"]):
     class BuoyDataNotFoundForSpot(Exception):
@@ -154,6 +177,9 @@ class CFTBuoyDataSetDomain(List["CFTBuoyDataDomain"]):
             if spot.pk in spot_ids:
                 return data
         raise self.BuoyDataNotFoundForSpot(f"{spot}")
+
+    def for_date(self, date: date) -> "CFTBuoyDataSetDomain":
+        return self.__class__([data for data in self if data.as_of.date() == date])
 
 
 class CFTBuoyService:

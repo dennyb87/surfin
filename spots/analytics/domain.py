@@ -70,8 +70,7 @@ class SpotSnapshotTimeserieV1(list["SpotSnapshotV1"]):
             buoy_data = buoy_data_set.for_date(assessment_orm.snapshot.created.date())[
                 0
             ]
-            if buoy_data.as_of < assessment_orm.snapshot.created:
-                spot_assessment = SpotSnapshotV1.from_data(assessment_orm, buoy_data)
-                spot_assessments.append(spot_assessment)
+            spot_assessment = SpotSnapshotV1.from_data(assessment_orm, buoy_data)
+            spot_assessments.append(spot_assessment)
 
         return cls(spot_assessments)

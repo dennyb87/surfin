@@ -11,7 +11,7 @@ from spots.models import SnapshotAssessment, Spot, SpotSnapshot
 
 
 class SpotAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ("uid",)
 
 
 class SpotSnapshotAdmin(admin.ModelAdmin):

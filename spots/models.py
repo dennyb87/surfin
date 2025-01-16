@@ -5,6 +5,7 @@ from spots.constants import WaveSizeScore
 
 
 class Spot(models.Model):
+    uid = models.UUIDField(unique=True)
     name = models.CharField(max_length=1000, unique=True)
     lat = models.CharField(max_length=1000)
     lon = models.CharField(max_length=1000)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 from ninja import NinjaAPI, Schema
@@ -20,7 +20,7 @@ class Spot(Schema):
 
 class SpotSnapshot(Schema):
     created: datetime
-    wave_size_score: float
+    wave_size_score: Optional[float]
     wind_direction: float
     wind_speed: float
     wave_height: float

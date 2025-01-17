@@ -31,7 +31,6 @@ class SpotSnapshotV1:
             created=snapshot.created,
             wave_size_score=snapshot.wave_size_score,
             wind_direction=snapshot.wind_direction,
-            buoy_data.data_delay,
             wind_speed=snapshot.wind_speed,
             wave_height=buoy_data.get_wave_height_at(snapshot.created),
             period=buoy_data.get_period(snapshot.created),

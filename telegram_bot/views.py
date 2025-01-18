@@ -1,8 +1,10 @@
-from django.http import JsonResponse
 from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from telegram import Bot
 
 
+@csrf_exempt
 def start(request):
     with open("called", "w") as f:
         f.write("called")

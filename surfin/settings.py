@@ -27,6 +27,8 @@ env_config = dotenv_values(BASE_DIR / ".env")
 SECRET_KEY = env_config["SECRET_KEY"]
 METEONETWORK_API_TOKEN = env_config["METEONETWORK_API_TOKEN"]
 WINDY_WEBCAMS_API_KEY = env_config["WINDY_WEBCAMS_API_KEY"]
+TELEGRAM_BOT_TOKEN = env_config["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_BOT_WEBHOOK_TOKEN = env_config["TELEGRAM_BOT_WEBHOOK_TOKEN"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_config["DEBUG"] == "True"
@@ -53,6 +55,7 @@ INSTALLED_APPS = [
     "windy",
     "cftoscana",
     "ipcamlive",
+    "telegram_bot",
 ]
 
 MIDDLEWARE = [

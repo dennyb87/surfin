@@ -102,6 +102,22 @@ class CFTBuoyDataDomain:
         delay = self.as_of - last_datapoint_dt
         return delay - timedelta(microseconds=delay.microseconds)
 
+    def get_feature_at(self, feature: CFTBuoyRawData, as_of_hour: float) -> float:
+        df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
+        return df.iloc[df.index <= as_of_hour].iloc[-1].y
+
+    def get_wave_height(self, hours_lag: float):
+        as_of_hour = self.wave_height["x"][-1] - hours_lag
+        return self.get_feature_at(self.wave_height, as_of_hour=as_of_hour)
+
+    def get_direction(self, hours_lag: float):
+        as_of_hour = self.direction["x"][-1] - hours_lag
+        return self.get_feature_at(self.direction, as_of_hour=as_of_hour)
+
+    def get_period(self, hours_lag: float):
+        as_of_hour = self.period["x"][-1] - hours_lag
+        return self.get_feature_at(self.period, as_of_hour=as_of_hour)
+
     def to_assessment_view(self):
         wave_height = f"{self.wave_height['y'][-1]} {self.wave_height['unit']}"
         direction = f"{self.direction['y'][-1]} {self.direction['unit']}"
@@ -144,22 +160,6 @@ class CFTBuoyDataDomain:
     def load_for_snapshot(cls, snapshot_id: int):
         orm_obj = CFTBuoyData.objects.get(snapshot_id=snapshot_id)
         return cls.from_orm_obj(orm_obj)
-
-    def get_feature_at(self, as_of: datetime, feature: CFTBuoyRawData):
-        assert as_of.date() == self.as_of.date()
-        start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
-        hours = (as_of - start_of_day).seconds / 3600
-        df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
-        return df.iloc[df.index <= hours].iloc[-1].y
-
-    def get_wave_height_at(self, as_of: datetime):
-        return self.get_feature_at(as_of=as_of, feature=self.wave_height)
-
-    def get_period(self, as_of: datetime):
-        return self.get_feature_at(as_of=as_of, feature=self.period)
-
-    def get_direction(self, as_of: datetime):
-        return self.get_feature_at(as_of=as_of, feature=self.direction)
 
 
 class CFTBuoyDataSetDomain(List["CFTBuoyDataDomain"]):

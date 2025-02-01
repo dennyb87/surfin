@@ -62,13 +62,38 @@ class SpotSnapshotDomain:
     pk: int
     created: "datetime"
     spot: "SpotDomain"
+    meteonetwork_data: "MeteoNetworkIRTDataDomain"
+    cft_buoy_data: "CFTBuoyDataDomain"
+    windy_webcam_data: "WindyWebcamDataDomain"
+    iplivecam_data: "IPCamLiveDataDomain"
+
+    @classmethod
+    def load_all(cls, spot: "Spot"):
+        snapshots_orm = SpotSnapshot.objects.filter(spot=spot)
+        snapshots = []
+        for orm_obj in snapshots_orm:
+            snapshot = cls.from_orm_obj(orm_obj)
+            snapshots.append(snapshot)
+        return snapshots
 
     @classmethod
     def from_orm_obj(cls, orm_obj: "SpotSnapshot"):
+        meteonetwork_data = MeteoNetworkIRTDataDomain.load_for_snapshot(
+            snapshot_id=orm_obj.pk
+        )
+        cft_buoy_data = CFTBuoyDataDomain.load_for_snapshot(snapshot_id=orm_obj.pk)
+        windy_webcam_data = WindyWebcamDataDomain.load_for_snapshot(
+            snapshot_id=orm_obj.pk
+        )
+        iplivecam_data = IPCamLiveDataDomain.load_for_snapshot(snapshot_id=orm_obj.pk)
         return cls(
             pk=orm_obj.pk,
             spot=SpotDomain.from_orm_obj(orm_obj.spot),
             created=orm_obj.created,
+            meteonetwork_data=meteonetwork_data,
+            cft_buoy_data=cft_buoy_data,
+            windy_webcam_data=windy_webcam_data,
+            iplivecam_data=iplivecam_data,
         )
 
     @classmethod
@@ -91,16 +116,10 @@ class SpotSnapshotDomain:
         return cls.from_orm_obj(snapshot_orm)
 
     def to_assessment_view(self):
-        meteonetwork_data = MeteoNetworkIRTDataDomain.load_for_snapshot(
-            snapshot_id=self.pk
-        )
-        cft_buoy_data = CFTBuoyDataDomain.load_for_snapshot(snapshot_id=self.pk)
-        windy_webcam_data = WindyWebcamDataDomain.load_for_snapshot(snapshot_id=self.pk)
-        iplivecam_data = IPCamLiveDataDomain.load_for_snapshot(snapshot_id=self.pk)
         return {
             "spot": self.spot.to_dict(),
-            "meteonetwork": meteonetwork_data.to_assessment_view(),
-            "cft_buoy": cft_buoy_data.to_assessment_view(),
-            "windy_webcam": windy_webcam_data.to_assessment_view(),
-            "iplivecam": iplivecam_data.to_assessment_view(),
+            "meteonetwork": self.meteonetwork_data.to_assessment_view(),
+            "cft_buoy": self.cft_buoy_data.to_assessment_view(),
+            "windy_webcam": self.windy_webcam_data.to_assessment_view(),
+            "iplivecam": self.iplivecam_data.to_assessment_view(),
         }

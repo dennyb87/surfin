@@ -1,11 +1,13 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import pandas as pd
+from dateutil.relativedelta import relativedelta
+from django.utils import timezone
 from ninja import NinjaAPI, Schema
 from pydantic import UUID4
 
-from spots.analytics.domain import SpotSnapshotTimeserieV1
+from spots.analytics.domain import SpotSnapshotTimeserieV1, WSS1hPredictor
 from spots.models import Spot as SpotModel
 
 api = NinjaAPI()
@@ -20,9 +22,8 @@ class Spot(Schema):
 
 class SpotSnapshot(Schema):
     created: datetime
-    wave_size_score: Optional[float]
-    wind_direction: float
-    wind_speed: float
+    wss1h: float
+    lag: float
     wave_height: float
     period: float
     direction: float
@@ -36,8 +37,14 @@ def spots(request):
 @api.get("/spots/{spot_uid}/timeseries/", response=List[SpotSnapshot])
 def timeseries(request, spot_uid: UUID4):
     spot = SpotModel.objects.get(uid=spot_uid)
-    timeserie = SpotSnapshotTimeserieV1.build_for_spot(spot)
-    df = pd.DataFrame(snapshot.to_dict() for snapshot in timeserie)
-    df.drop(["id"], axis=1, inplace=True)
+    yesterday = timezone.now() - relativedelta(days=1)
+    start_of_day = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+    timeserie = SpotSnapshotTimeserieV1.build_for_spot(spot, from_date=start_of_day)
+
+    predictor = WSS1hPredictor.initialize()
+    predictions = predictor.predict(timeserie)
+
+    df = pd.DataFrame(prediction.to_dict() for prediction in predictions)
     df.sort_values(by=["created"], inplace=True, ascending=False)
+
     return df.to_dict(orient="records")

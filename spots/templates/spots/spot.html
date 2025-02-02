@@ -1,0 +1,75 @@
+{% load static %}
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css"/>
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div>
+        <canvas id="myChart"></canvas>
+    </div>
+    <script type="module">
+        const ctx = document.getElementById('myChart');
+        let resp = await fetch("/api/spots/6f489e26-bc41-42dc-b9ec-e7b62da0b150/timeseries/");
+        let data = await resp.json();
+        let snapshotCreatedSet = data.map(s => s.hour);
+        let waveHeightSet = data.map(s => s.wave_height);
+        let wss1hPrediction = data.map(s => s.wss1h);
+        const skipped = (ctx, value) => ctx.p0.skip || ctx.p1.skip ? value : undefined;
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+            labels: snapshotCreatedSet,
+            datasets: [
+                {
+                    label: 'wave height',
+                    data: waveHeightSet,
+                    borderWidth: 1,
+                    cubicInterpolationMode: 'monotone',
+                    tension: 0.4,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'wss 1hour prediction',
+                    data: wss1hPrediction,
+                    borderWidth: 1,
+                    cubicInterpolationMode: 'monotone',
+                    tension: 0.4,
+                    yAxisID: 'y1',
+                },
+            ]
+            },
+            options: {
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        suggestedMin: 0,
+                        suggestedMax: 500,
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        suggestedMin: 0,
+                        suggestedMax: 5,
+                        // grid line settings
+                        grid: {
+                            drawOnChartArea: false, // only want the grid lines for one axis to show up
+                        },
+                    },
+                },
+            }
+        });
+    </script>
+  </body> 
+</html> 

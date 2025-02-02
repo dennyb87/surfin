@@ -27,6 +27,7 @@ urlpatterns = [
     path("telegram_bot/", include("telegram_bot.urls")),
     path("admin/", admin.site.urls),
     path("api/", api.urls),
+    path("spots/", include("spots.urls")),
 ]
 
 

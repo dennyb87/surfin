@@ -16,7 +16,8 @@
         let snapshotCreatedSet = data.map(s => s.hour);
         let waveHeightSet = data.map(s => s.wave_height);
         let wss1hPrediction = data.map(s => s.wss1h);
-        let graphCurrentHour = new Date().getHours()*2;
+        let now = new Date();
+        let graphCurrentHour = now.getHours()*2+(now.getMinutes()/60)*2;
         const skipped = (ctx, value) => ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
         new Chart(ctx, {
@@ -70,7 +71,7 @@
                         position: 'left',
                         beginAtZero: true,
                         suggestedMin: 0,
-                        suggestedMax: Math.max(...waveHeightSet)*1.5,
+                        suggestedMax: 500,
                     },
                     y1: {
                         type: 'linear',
@@ -78,7 +79,7 @@
                         position: 'right',
                         beginAtZero: true,
                         suggestedMin: 0,
-                        suggestedMax: Math.max(...wss1hPrediction)*1.5,
+                        suggestedMax: 5,
                         // grid line settings
                         grid: {
                             drawOnChartArea: false, // only want the grid lines for one axis to show up

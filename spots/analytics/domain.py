@@ -160,6 +160,7 @@ class WSS1hPredictor:
         spot = Spot.objects.get(uid=spot_uid)
         timeserie = SpotSnapshotTimeserieV1.build_for_spot(spot, from_date=datetime.min)
         df = pd.DataFrame(snapshot.to_dict() for snapshot in timeserie)
+        df = df[~df.wave_size_score.isnull()]
         df["date"] = df.created.apply(lambda dt: str(dt.date()))
         df.set_index(["created"], inplace=True)
         df.sort_values(by=["created"], inplace=True, ascending=False)

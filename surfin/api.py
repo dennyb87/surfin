@@ -54,16 +54,16 @@ def timeseries(request, spot_uid: UUID4):
     df.rename(columns={"y": "wave_height"}, inplace=True)
 
     daydf = pd.DataFrame({"hour": np.arange(0.0, 24.5, 0.5)})
-    daydf = pd.merge_asof(daydf, df, on=["hour"], tolerance=1, direction="nearest")
+    daydf = pd.merge_asof(daydf, df, on=["hour"], tolerance=0.5, direction="nearest")
     wssdf = pd.DataFrame(p.to_dict() for p in predictions)
     if not wssdf.empty:
         wssdf["hour"] = wssdf.created.apply(
             lambda dt: round(dt.hour + (dt.minute / 60), 1)
         )
-        wssdf["wss1h"] = wssdf.wss1h.shift(periods=2)
+        wssdf = wssdf[["hour", "wss1h"]]
     else:
         wssdf = pd.DataFrame({"wss1h": [], "hour": []})
-
     daydf = daydf.merge(wssdf[["hour", "wss1h"]], on=["hour"], how="outer")
+    daydf["wss1h"] = daydf.wss1h.shift(periods=2)
     daydf.replace({np.nan: None}, inplace=True)
     return daydf.to_dict(orient="records")

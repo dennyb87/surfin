@@ -2,11 +2,11 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.1.0/chartjs-plugin-annotation.min.js"></script>
   </head>
   <body>
-    <div>
+    <div style="max-width: 920px;">
         <canvas id="myChart"></canvas>
     </div>
     <script type="module">
@@ -16,32 +16,53 @@
         let snapshotCreatedSet = data.map(s => s.hour);
         let waveHeightSet = data.map(s => s.wave_height);
         let wss1hPrediction = data.map(s => s.wss1h);
+        let graphCurrentHour = new Date().getHours()*2;
         const skipped = (ctx, value) => ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
         new Chart(ctx, {
             type: 'line',
             data: {
-            labels: snapshotCreatedSet,
-            datasets: [
-                {
-                    label: 'wave height',
-                    data: waveHeightSet,
-                    borderWidth: 1,
-                    cubicInterpolationMode: 'monotone',
-                    tension: 0.4,
-                    yAxisID: 'y',
-                },
-                {
-                    label: 'wss 1hour prediction',
-                    data: wss1hPrediction,
-                    borderWidth: 1,
-                    cubicInterpolationMode: 'monotone',
-                    tension: 0.4,
-                    yAxisID: 'y1',
-                },
-            ]
+                labels: snapshotCreatedSet,
+                datasets: [
+                    {
+                        label: 'wave height',
+                        data: waveHeightSet,
+                        borderWidth: 1,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.4,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'wss 1hour prediction',
+                        data: wss1hPrediction,
+                        borderWidth: 1,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                    },
+                ]
             },
             options: {
+                responsive: true,
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                scaleID: 'x',
+                                value: graphCurrentHour,
+                                borderColor: 'green',
+                                borderWidth: 1,
+                                label: {
+                                    display: true,
+                                    content: "now",
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    position: "20%",
+                                }
+                            },
+                        }
+                    }
+                },
                 scales: {
                     y: {
                         type: 'linear',
@@ -49,7 +70,7 @@
                         position: 'left',
                         beginAtZero: true,
                         suggestedMin: 0,
-                        suggestedMax: 500,
+                        suggestedMax: Math.max(...waveHeightSet)*1.5,
                     },
                     y1: {
                         type: 'linear',
@@ -57,7 +78,7 @@
                         position: 'right',
                         beginAtZero: true,
                         suggestedMin: 0,
-                        suggestedMax: 5,
+                        suggestedMax: Math.max(...wss1hPrediction)*1.5,
                         // grid line settings
                         grid: {
                             drawOnChartArea: false, // only want the grid lines for one axis to show up

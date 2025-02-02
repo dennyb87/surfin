@@ -54,8 +54,7 @@ def timeseries(request, spot_uid: UUID4):
     df.rename(columns={"y": "wave_height"}, inplace=True)
 
     daydf = pd.DataFrame({"hour": np.arange(0.0, 24.5, 0.5)})
-    daydf = pd.merge_asof(daydf, df, on=["hour"])
-
+    daydf = pd.merge_asof(daydf, df, on=["hour"], tolerance=1, direction="nearest")
     wssdf = pd.DataFrame(p.to_dict() for p in predictions)
     if not wssdf.empty:
         wssdf["hour"] = wssdf.created.apply(

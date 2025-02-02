@@ -1,6 +1,8 @@
 from django.shortcuts import render
 
-# Create your views here.
+from spots.models import Spot
+
 
 def index(request):
-    return render(request, "demo/index.html", context={})
+    spots = Spot.objects.all()
+    return render(request, "demo/index.html", context={"spots": spots})

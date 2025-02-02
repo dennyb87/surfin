@@ -6,30 +6,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   </head> 
   <body>
-    <script>
-      const ctx = document.getElementById('myChart');
-    
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-          datasets: [{
-            label: '# of Votes',
-            data: [12, 19, 3, 5, 2, 3],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
+    <div class="main">
+      <div class="box">
+        <div id="main">
+              <img id="logo" src="{% static 'surfin_logo.svg' %}" alt="sine logo" width="220px"/>
+              <div id="intro">Just a casual experiment</div>
+              <div id="spots">
+                {% for spot in spots %}
+                <a href="{% url 'spots' spot.uid %}">{{ spot.name }}</a>
+              {% endfor %}
+              </div>
+        </div>
+        <div id="footer">#surf_alerts #real_time_weather #webcams</div>
+    </div>
+    <div id="surf"></div>
     </script>
   </body> 
 </html> 

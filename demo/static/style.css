@@ -61,6 +61,21 @@ body {
     background-size: cover;
 }
 
+#spots{
+    letter-spacing: 0.2em;
+    padding-top: 100px;
+}
+
+#spots a{
+    color: #424242;
+    text-decoration: none;
+}
+
+#spots a:hover {
+    text-decoration: underline;
+}
+
+
 @media (min-width: 960px) {
     #logo {
         width: 320px;

@@ -17,7 +17,7 @@
         let waveHeightSet = data.map(s => s.wave_height);
         let wss1hPrediction = data.map(s => s.wss1h);
         let now = new Date();
-        let graphCurrentHour = now.getHours()*2+(now.getMinutes()/60)*2;
+        let graphCurrentHour = now.getUTCHours()*2+(now.getUTCMinutes()/60)*2;
         const skipped = (ctx, value) => ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
         new Chart(ctx, {

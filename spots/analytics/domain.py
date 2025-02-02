@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 import pandas as pd
 from django.db.models import F, OuterRef
+from pydantic import UUID4
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -119,7 +120,7 @@ class SpotWSS1hPrediction:
 
 @dataclass
 class TrainOutput:
-    spot: str
+    spot: UUID4
     rmse: float
     stored: bool
     filename: Optional[str]
@@ -130,14 +131,14 @@ class WSS1hPredictor:
     model: "RandomForestRegressor"
 
     @classmethod
-    def initialize(cls, spot_uid: str):
+    def initialize(cls, spot_uid: UUID4) -> "WSS1hPredictor":
         filename = cls.get_filename(spot_uid=spot_uid)
         with open(filename, "rb") as file:
             model = pickle.load(file)
         return cls(model=model)
 
     @classmethod
-    def get_filename(cls, spot_uid: str):
+    def get_filename(cls, spot_uid: UUID4) -> str:
         return f"{cls.__name__}_{spot_uid}.pkl"
 
     def predict(self, snapshots: "list[SpotSnapshotV1]") -> "list[SpotWSS1hPrediction]":
@@ -155,17 +156,22 @@ class WSS1hPredictor:
         return wss1h_snapshots
 
     @classmethod
-    def train(cls, spot_uid: str, store: bool = False):
+    def train(cls, spot_uid: UUID4, store: bool = False) -> "TrainOutput":
         spot = Spot.objects.get(uid=spot_uid)
         timeserie = SpotSnapshotTimeserieV1.build_for_spot(spot, from_date=datetime.min)
         df = pd.DataFrame(snapshot.to_dict() for snapshot in timeserie)
+        df["date"] = df.created.apply(lambda dt: str(dt.date()))
         df.set_index(["created"], inplace=True)
         df.sort_values(by=["created"], inplace=True, ascending=False)
         df.drop(columns=["id"], inplace=True)
 
+        df["wss1h"] = df.groupby("date")["wave_size_score"].shift(periods=2)
+        df = df[~df.wss1h.isnull()]
+        df.drop(columns=["buoy_data", "wave_size_score", "date"], inplace=True)
+
         # Separate features and target variable
-        X = df.drop(columns=["wave_size_score", "buoy_data"])
-        y = df["wave_size_score"]
+        X = df.drop(columns=["wss1h"])
+        y = df["wss1h"]
 
         # Split into training and testing datasets
         X_train, X_test, y_train, y_test = train_test_split(
@@ -182,10 +188,10 @@ class WSS1hPredictor:
         # Evaluate the model
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
-        filename = cls.get_filename(spot_uid)
+        filename = cls.get_filename(spot_uid=spot_uid)
 
         if store:
-            with open("spot_model.pkl", "wb") as file:
+            with open(filename, "wb") as file:
                 pickle.dump(model, file)
 
         return TrainOutput(

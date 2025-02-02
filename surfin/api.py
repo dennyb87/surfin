@@ -38,7 +38,7 @@ def timeseries(request, spot_uid: UUID4):
     start_of_day = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     timeserie = SpotSnapshotTimeserieV1.build_for_spot(spot, from_date=start_of_day)
 
-    predictor = WSS1hPredictor.initialize()
+    predictor = WSS1hPredictor.initialize(spot_uid=spot_uid)
     predictions = predictor.predict(timeserie)
 
     # For simplicity always build wave height from latest available data

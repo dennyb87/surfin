@@ -2,13 +2,17 @@ import pickle
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
+import numpy as np
 import pandas as pd
 from django.db.models import F, OuterRef
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
 
 from cftoscana.domain import CFTBuoyDataDomain
-from spots.models import SnapshotAssessment, SpotSnapshot
+from spots.models import SnapshotAssessment, Spot, SpotSnapshot
 
 if TYPE_CHECKING:
     from sklearn.ensemble import RandomForestRegressor
@@ -114,14 +118,27 @@ class SpotWSS1hPrediction:
 
 
 @dataclass
+class TrainOutput:
+    spot: str
+    rmse: float
+    stored: bool
+    filename: Optional[str]
+
+
+@dataclass
 class WSS1hPredictor:
     model: "RandomForestRegressor"
 
     @classmethod
-    def initialize(cls):
-        with open("spot_model.pkl", "rb") as file:
+    def initialize(cls, spot_uid: str):
+        filename = cls.get_filename(spot_uid=spot_uid)
+        with open(filename, "rb") as file:
             model = pickle.load(file)
         return cls(model=model)
+
+    @classmethod
+    def get_filename(cls, spot_uid: str):
+        return f"{cls.__name__}_{spot_uid}.pkl"
 
     def predict(self, snapshots: "list[SpotSnapshotV1]") -> "list[SpotWSS1hPrediction]":
         wss1h_snapshots = []
@@ -136,3 +153,44 @@ class WSS1hPredictor:
             spot_wss1h = SpotWSS1hPrediction.from_data(snapshot, wss1h=wss1h)
             wss1h_snapshots.append(spot_wss1h)
         return wss1h_snapshots
+
+    @classmethod
+    def train(cls, spot_uid: str, store: bool = False):
+        spot = Spot.objects.get(uid=spot_uid)
+        timeserie = SpotSnapshotTimeserieV1.build_for_spot(spot, from_date=datetime.min)
+        df = pd.DataFrame(snapshot.to_dict() for snapshot in timeserie)
+        df.set_index(["created"], inplace=True)
+        df.sort_values(by=["created"], inplace=True, ascending=False)
+        df.drop(columns=["id"], inplace=True)
+
+        # Separate features and target variable
+        X = df.drop(columns=["wave_size_score", "buoy_data"])
+        y = df["wave_size_score"]
+
+        # Split into training and testing datasets
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+
+        # Train a Random Forest Regressor
+        model = RandomForestRegressor(random_state=42)
+        model.fit(X_train, y_train)
+
+        # Predict on the test set
+        y_pred = model.predict(X_test)
+
+        # Evaluate the model
+        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
+        filename = cls.get_filename(spot_uid)
+
+        if store:
+            with open("spot_model.pkl", "wb") as file:
+                pickle.dump(model, file)
+
+        return TrainOutput(
+            spot=spot_uid,
+            rmse=rmse,
+            stored=store,
+            filename=filename,
+        )

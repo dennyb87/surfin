@@ -66,6 +66,12 @@
                 },
                 scales: {
                     y: {
+                        ticks: {
+                            // Include a dollar sign in the ticks
+                            callback: function(value, index, ticks) {
+                                return value+' cm';
+                            }
+                        },
                         type: 'linear',
                         display: true,
                         position: 'left',
@@ -74,6 +80,10 @@
                         suggestedMax: 500,
                     },
                     y1: {
+                        title: {
+                            display: true,
+                            text: "wave size score",
+                        },
                         type: 'linear',
                         display: true,
                         position: 'right',

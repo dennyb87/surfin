@@ -95,7 +95,7 @@ class CFTBuoyDataDomain:
     def data_delay(self) -> timedelta:
         raw_hour = self.wave_height["x"][-1]
         hour = math.floor(raw_hour)
-        minute = math.floor(raw_hour - hour)
+        minute = math.floor((raw_hour - hour) * 60)
         last_datapoint_dt = self.as_of.replace(
             hour=hour, minute=minute, second=0, microsecond=0
         )

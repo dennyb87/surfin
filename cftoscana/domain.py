@@ -102,7 +102,22 @@ class CFTBuoyDataDomain:
         delay = self.as_of - last_datapoint_dt
         return delay - timedelta(microseconds=delay.microseconds)
 
-    def get_feature_at(self, feature: CFTBuoyRawData, as_of_hour: float) -> float:
+    def get_feature_std(self, feature: "CFTBuoyRawData", hours: int) -> float:
+        df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
+        cutoff_hour = self.wave_height["x"][-1] - hours
+        slice = df[df.index >= cutoff_hour]
+        return slice.y.std()
+
+    def get_wave_height_std(self, hours: int):
+        return self.get_feature_std(feature=self.wave_height, hours=hours)
+
+    def get_direction_std(self, hours: int):
+        return self.get_feature_std(feature=self.direction, hours=hours)
+
+    def get_period_std(self, hours: int):
+        return self.get_feature_std(feature=self.period, hours=hours)
+
+    def get_feature_at(self, feature: "CFTBuoyRawData", as_of_hour: float) -> float:
         df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
         return df.iloc[df.index <= as_of_hour].iloc[-1].y
 

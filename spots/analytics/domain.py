@@ -44,9 +44,26 @@ class SpotSnapshotV1:
     direction_lag_1: float
     direction_lag_2: float
 
+    wave_height_std_2h: float
+    period_std_2h: float
+    direction_std_2h: float
+
+    wave_hp_lag_0: float
+    wave_hp_lag_1: float
+    wave_hp_lag_2: float
+
     @classmethod
     def from_orm(cls, snapshot: "SpotSnapshot"):
         buoy = CFTBuoyDataDomain.load_for_snapshot(snapshot)
+
+        wave_height_lag_0 = buoy.get_wave_height(hours_lag=0)
+        wave_height_lag_1 = buoy.get_wave_height(hours_lag=1)
+        wave_height_lag_2 = buoy.get_wave_height(hours_lag=2)
+
+        period_lag_0 = buoy.get_period(hours_lag=0)
+        period_lag_1 = buoy.get_period(hours_lag=1)
+        period_lag_2 = buoy.get_period(hours_lag=2)
+
         return cls(
             id=snapshot.pk,
             created=snapshot.created,
@@ -54,15 +71,21 @@ class SpotSnapshotV1:
             wave_size_score=snapshot.wave_size_score,
             wind_direction=snapshot.wind_direction,
             wind_speed=snapshot.wind_speed,
-            wave_height_lag_0=buoy.get_wave_height(hours_lag=0),
-            wave_height_lag_1=buoy.get_wave_height(hours_lag=1),
-            wave_height_lag_2=buoy.get_wave_height(hours_lag=2),
-            period_lag_0=buoy.get_period(hours_lag=0),
-            period_lag_1=buoy.get_period(hours_lag=1),
-            period_lag_2=buoy.get_period(hours_lag=2),
+            wave_height_lag_0=wave_height_lag_0,
+            wave_height_lag_1=wave_height_lag_1,
+            wave_height_lag_2=wave_height_lag_2,
+            period_lag_0=period_lag_0,
+            period_lag_1=period_lag_1,
+            period_lag_2=period_lag_2,
             direction_lag_0=buoy.get_direction(hours_lag=0),
             direction_lag_1=buoy.get_direction(hours_lag=1),
             direction_lag_2=buoy.get_direction(hours_lag=2),
+            wave_height_std_2h=buoy.get_wave_height_std(hours=2),
+            period_std_2h=buoy.get_period_std(hours=2),
+            direction_std_2h=buoy.get_direction_std(hours=2),
+            wave_hp_lag_0=wave_height_lag_0 * period_lag_0,
+            wave_hp_lag_1=wave_height_lag_1 * period_lag_1,
+            wave_hp_lag_2=wave_height_lag_2 * period_lag_2,
         )
 
     def to_dict(self):

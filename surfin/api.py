@@ -25,6 +25,8 @@ class SpotSnapshot(Schema):
     hour: float
     wss1h: Optional[float]
     wave_height: Optional[float]
+    direction: Optional[float]
+    period: Optional[float]
 
 
 @api.get("/spots/", response=List[Spot])
@@ -43,14 +45,28 @@ def timeseries(request, spot_uid: UUID4):
 
     # For simplicity always build wave height from latest available data
     try:
-        latest_prediction = predictions[-1].snapshot.buoy_data.wave_height
+        latest_buoy_data = predictions[-1].snapshot.buoy_data
     except IndexError:
         df = pd.DataFrame({"x": [], "y": [], "unit": []})
     else:
-        df = pd.DataFrame(latest_prediction)
+        df = pd.DataFrame(latest_buoy_data.wave_height)
 
     df["hour"] = df.x
     df.drop(columns=["x", "unit"], inplace=True)
+
+    dir_df = pd.DataFrame(latest_buoy_data.direction)
+    dir_df["hour"] = dir_df.x
+    dir_df.drop(columns=["x", "unit"], inplace=True)
+    dir_df.rename(columns={"y": "direction"}, inplace=True)
+
+    period_df = pd.DataFrame(latest_buoy_data.period)
+    period_df["hour"] = period_df.x
+    period_df.drop(columns=["x", "unit"], inplace=True)
+    period_df.rename(columns={"y": "period"}, inplace=True)
+
+    df = pd.merge_asof(df, dir_df, on="hour", tolerance=0.5, direction="nearest")
+    df = pd.merge_asof(df, period_df, on="hour", tolerance=0.5, direction="nearest")
+
     df.rename(columns={"y": "wave_height"}, inplace=True)
 
     daydf = pd.DataFrame({"hour": np.arange(0.0, 24.5, 0.5)})

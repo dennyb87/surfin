@@ -75,6 +75,15 @@ body {
     text-decoration: underline;
 }
 
+.main-chart {
+    display: inline-block;
+    width: 100%;
+}
+
+.side-chart {
+    display: inline-block;
+    width: 100%;
+}
 
 @media (min-width: 960px) {
     #logo {
@@ -97,5 +106,15 @@ body {
     #footer {
         font-size: 1em;
         letter-spacing: 0.2em;
+    }
+
+    .main-chart {
+        display: inline-block;
+        width: 60%;
+    }
+    
+    .side-chart {
+        display: inline-block;
+        width: 39%;
     }
 }

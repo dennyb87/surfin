@@ -4,23 +4,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.1.0/chartjs-plugin-annotation.min.js"></script>
-  </head>
+    <link rel="stylesheet" href="/static/style.css"/>  
+</head>
   <body>
-    <div style="max-width: 920px;">
-        <canvas id="myChart"></canvas>
+    <div class="main-chart">
+        <canvas id="waveChart"></canvas>
+    </div>
+    <div class="side-chart">
+        <canvas id="dirChart"></canvas>
+        <canvas id="periodChart"></canvas>
     </div>
     <script type="module">
-        const ctx = document.getElementById('myChart');
+        const waveChartCTX = document.getElementById('waveChart');
+        const dirChartCTX = document.getElementById('dirChart');
+        const periodChartCTX = document.getElementById('periodChart');
+
         let resp = await fetch("/api/spots/6f489e26-bc41-42dc-b9ec-e7b62da0b150/timeseries/");
         let data = await resp.json();
+
         let snapshotCreatedSet = data.map(s => s.hour);
         let waveHeightSet = data.map(s => s.wave_height);
         let wss1hPrediction = data.map(s => s.wss1h);
+        let directionSet = data.map(s => s.direction);
+        let periodSet = data.map(s => s.period);
+
         let now = new Date();
         let graphCurrentHour = now.getUTCHours()*2+(now.getUTCMinutes()/60)*2;
-        const skipped = (ctx, value) => ctx.p0.skip || ctx.p1.skip ? value : undefined;
 
-        new Chart(ctx, {
+        new Chart(waveChartCTX, {
             type: 'line',
             data: {
                 labels: snapshotCreatedSet,
@@ -52,7 +63,6 @@
                                 type: 'line',
                                 scaleID: 'x',
                                 value: graphCurrentHour,
-                                borderColor: 'green',
                                 borderWidth: 1,
                                 label: {
                                     display: true,
@@ -97,6 +107,117 @@
                     },
                 },
             }
+        });
+
+        new Chart(dirChartCTX, {
+            type: 'line',
+            data: {
+                labels: snapshotCreatedSet,
+                datasets: [
+                    {
+                        label: 'direction',
+                        data: directionSet,
+                        borderWidth: 1,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.4,
+                        yAxisID: 'y',
+                        borderColor: '#4CAF50',
+                        backgroundColor: '#81C784',
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                scaleID: 'x',
+                                value: graphCurrentHour,
+                                borderWidth: 1,
+                                label: {
+                                    display: true,
+                                    content: "now",
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    position: "20%",
+                                }
+                            },
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            // Include a dollar sign in the ticks
+                            callback: function(value, index, ticks) {
+                                return value+' °';
+                            }
+                        },
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        suggestedMin: 0,
+                        suggestedMax: 360,
+                    }
+                }
+            },
+        });
+
+        new Chart([periodChartCTX], {
+            type: 'line',
+            data: {
+                labels: snapshotCreatedSet,
+                datasets: [
+                    {
+                        label: 'period',
+                        data: periodSet,
+                        borderWidth: 1,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.4,
+                        yAxisID: 'y',
+                        borderColor: '#FFAB00',
+                        backgroundColor: '#FFC400',
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                scaleID: 'x',
+                                value: graphCurrentHour,
+                                borderWidth: 1,
+                                label: {
+                                    display: true,
+                                    content: "now",
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    position: "20%",
+                                }
+                            },
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value+' s';
+                            }
+                        },
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        suggestedMin: 0,
+                        suggestedMax: 30,
+                    }
+                }
+            },
         });
     </script>
   </body> 

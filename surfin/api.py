@@ -48,18 +48,20 @@ def timeseries(request, spot_uid: UUID4):
         latest_buoy_data = predictions[-1].snapshot.buoy_data
     except IndexError:
         df = pd.DataFrame({"x": [], "y": [], "unit": []})
+        dir_df = pd.DataFrame({"x": [], "y": [], "unit": []})
+        period_df = pd.DataFrame({"x": [], "y": [], "unit": []})
     else:
         df = pd.DataFrame(latest_buoy_data.wave_height)
+        dir_df = pd.DataFrame(latest_buoy_data.direction)
+        period_df = pd.DataFrame(latest_buoy_data.period)
 
     df["hour"] = df.x
     df.drop(columns=["x", "unit"], inplace=True)
 
-    dir_df = pd.DataFrame(latest_buoy_data.direction)
     dir_df["hour"] = dir_df.x
     dir_df.drop(columns=["x", "unit"], inplace=True)
     dir_df.rename(columns={"y": "direction"}, inplace=True)
 
-    period_df = pd.DataFrame(latest_buoy_data.period)
     period_df["hour"] = period_df.x
     period_df.drop(columns=["x", "unit"], inplace=True)
     period_df.rename(columns={"y": "period"}, inplace=True)

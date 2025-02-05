@@ -1,5 +1,6 @@
 from astral import LocationInfo
 from astral.sun import sun
+from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -25,8 +26,9 @@ class Command(BaseCommand):
             longitude=12.4822,
         )
         sun_times = sun(city.observer)
-        sunrise = sun_times["sunrise"]
-        sunset = sun_times["sunset"]
+        sunrise = sun_times["sunrise"] - relativedelta(minutes=30)
+        sunset = sun_times["sunset"] + relativedelta(minutes=30)
+
         if sunrise < now < sunset:
             pass
         else:

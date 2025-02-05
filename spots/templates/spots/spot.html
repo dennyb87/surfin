@@ -2,11 +2,15 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.1.0/chartjs-plugin-annotation.min.js"></script>
     <link rel="stylesheet" href="/static/style.css"/>  
 </head>
   <body>
+    <h1>{{ spot.name }}</h1>
     <div class="main-chart">
         <canvas id="waveChart"></canvas>
     </div>
@@ -19,7 +23,7 @@
         const dirChartCTX = document.getElementById('dirChart');
         const periodChartCTX = document.getElementById('periodChart');
 
-        let resp = await fetch("/api/spots/6f489e26-bc41-42dc-b9ec-e7b62da0b150/timeseries/");
+        let resp = await fetch("/api/spots/{{ spot.uid }}/timeseries/");
         let data = await resp.json();
 
         let snapshotCreatedSet = data.map(s => s.hour);

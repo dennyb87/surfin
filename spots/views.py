@@ -1,11 +1,10 @@
-import pandas as pd
-from dateutil.relativedelta import relativedelta
 from django.shortcuts import render
-from django.utils import timezone
 
-from spots.analytics.domain import SpotSnapshotTimeserieV1, WSS1hPredictor
-from spots.models import Spot as SpotModel
+from spots.models import Spot
 
 
-def spot(request, spot_id):
-    return render(request=request, template_name="spots/spot.html")
+def spot(request, spot_uid):
+    spot = Spot.objects.get(uid=spot_uid)
+    return render(
+        request=request, template_name="spots/spot.html", context={"spot": spot}
+    )

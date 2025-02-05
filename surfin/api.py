@@ -1,9 +1,7 @@
-from datetime import datetime
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from ninja import NinjaAPI, Schema
 from pydantic import UUID4
@@ -51,9 +49,9 @@ def timeseries(request, spot_uid: UUID4):
         dir_df = pd.DataFrame({"x": [], "y": [], "unit": []})
         period_df = pd.DataFrame({"x": [], "y": [], "unit": []})
     else:
-        df = pd.DataFrame(latest_buoy_data.wave_height)
-        dir_df = pd.DataFrame(latest_buoy_data.direction)
-        period_df = pd.DataFrame(latest_buoy_data.period)
+        df = pd.DataFrame(latest_buoy_data.wave_height.to_dict())
+        dir_df = pd.DataFrame(latest_buoy_data.direction.to_dict())
+        period_df = pd.DataFrame(latest_buoy_data.period.to_dict())
 
     df["hour"] = df.x
     df.drop(columns=["x", "unit"], inplace=True)

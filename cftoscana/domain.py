@@ -1,10 +1,9 @@
-from dataclasses import dataclass
-from datetime import datetime, timedelta, date
 import math
-from typing import TYPE_CHECKING, List, Optional, TypedDict
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, List, Optional
 
 import pandas as pd
-
 from cft_buoy_data_extractor.client import CFTBuoyDataExtractor
 from cft_buoy_data_extractor.constants import (
     Graph,
@@ -22,10 +21,14 @@ if TYPE_CHECKING:
     from spots.models import Spot, SpotSnapshot
 
 
-class CFTBuoyRawData(TypedDict):
+@dataclass
+class CFTBuoyRawDataUTC:
     x: list[float]
     y: list[float]
     unit: str
+
+    def to_dict(self):
+        return asdict(self)
 
 
 @dataclass
@@ -46,17 +49,23 @@ class CFTBuoyStationDomain:
             spots_orm=orm_obj.spots.all(),
         )
 
-    def fetch_data(self, graph: "Graph") -> CFTBuoyRawData:
+    def fetch_data(self, graph: "Graph") -> CFTBuoyRawDataUTC:
         client = CFTBuoyDataExtractor(
             station=self.station,
             graph=graph,
         )
         data = client.get_station_data()
-        return CFTBuoyRawData(x=data["x"], y=data["y"], unit=graph.unit)
+        return CFTBuoyRawDataUTC(x=data["x"], y=data["y"], unit=graph.unit)
 
     def take_snapshot(self, as_of: datetime) -> "CFTBuoyDataDomain":
+        # Data from Centro Funzionale Toscana is in CET (no DST)
+        # meaning x-axis would always be 1 hour ahead of UTC.
+        # This is not ideal and unintentional yet crucial, it just happens
+        # that by using UTC here I always collect -1 number of hours
+        # which means the x-axis will implicitly and automagically be in UTC.
         start_of_day = as_of.replace(hour=0, minute=0, second=0, microsecond=0)
         hours = int((as_of - start_of_day).seconds / 3600)
+        # end-of-utc-unintentional-hack
 
         graph_dirp = PeakDirection(date=as_of.date().strftime("%d/%m/%Y"), hours=hours)
         graph_tp = PeakPeriod(date=as_of.date().strftime("%d/%m/%Y"), hours=hours)
@@ -87,13 +96,13 @@ class CFTBuoyDataDomain:
     station: "CFTBuoyStationDomain"
     created: Optional[datetime]
     as_of: datetime
-    wave_height: "CFTBuoyRawData"
-    period: "CFTBuoyRawData"
-    direction: "CFTBuoyRawData"
+    wave_height: "CFTBuoyRawDataUTC"
+    period: "CFTBuoyRawDataUTC"
+    direction: "CFTBuoyRawDataUTC"
 
     @property
     def data_delay(self) -> timedelta:
-        raw_hour = self.wave_height["x"][-1]
+        raw_hour = self.wave_height.x[-1]
         hour = math.floor(raw_hour)
         minute = math.floor((raw_hour - hour) * 60)
         last_datapoint_dt = self.as_of.replace(
@@ -102,9 +111,9 @@ class CFTBuoyDataDomain:
         delay = self.as_of - last_datapoint_dt
         return delay - timedelta(microseconds=delay.microseconds)
 
-    def get_feature_std(self, feature: "CFTBuoyRawData", hours: int) -> float:
-        df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
-        cutoff_hour = self.wave_height["x"][-1] - hours
+    def get_feature_std(self, feature: "CFTBuoyRawDataUTC", hours: int) -> float:
+        df = pd.DataFrame({"y": feature.y}, index=feature.x)
+        cutoff_hour = self.wave_height.x[-1] - hours
         slice = df[df.index >= cutoff_hour]
         return slice.y.std()
 
@@ -117,26 +126,26 @@ class CFTBuoyDataDomain:
     def get_period_std(self, hours: int):
         return self.get_feature_std(feature=self.period, hours=hours)
 
-    def get_feature_at(self, feature: "CFTBuoyRawData", as_of_hour: float) -> float:
-        df = pd.DataFrame({"y": feature["y"]}, index=feature["x"])
+    def get_feature_at(self, feature: "CFTBuoyRawDataUTC", as_of_hour: float) -> float:
+        df = pd.DataFrame({"y": feature.y}, index=feature.x)
         return df.iloc[df.index <= as_of_hour].iloc[-1].y
 
     def get_wave_height(self, hours_lag: float):
-        as_of_hour = self.wave_height["x"][-1] - hours_lag
+        as_of_hour = self.wave_height.x[-1] - hours_lag
         return self.get_feature_at(self.wave_height, as_of_hour=as_of_hour)
 
     def get_direction(self, hours_lag: float):
-        as_of_hour = self.direction["x"][-1] - hours_lag
+        as_of_hour = self.direction.x[-1] - hours_lag
         return self.get_feature_at(self.direction, as_of_hour=as_of_hour)
 
     def get_period(self, hours_lag: float):
-        as_of_hour = self.period["x"][-1] - hours_lag
+        as_of_hour = self.period.x[-1] - hours_lag
         return self.get_feature_at(self.period, as_of_hour=as_of_hour)
 
     def to_assessment_view(self):
-        wave_height = f"{self.wave_height['y'][-1]} {self.wave_height['unit']}"
-        direction = f"{self.direction['y'][-1]} {self.direction['unit']}"
-        period = f"{self.period['y'][-1]} {self.period['unit']}"
+        wave_height = f"{self.wave_height.y[-1]} {self.wave_height.unit}"
+        direction = f"{self.direction.y[-1]} {self.direction.unit}"
+        period = f"{self.period.y[-1]} {self.period.unit}"
         data_hours_delay = round(self.data_delay.total_seconds() / 3600, 2)
         return {
             "station": self.station,
@@ -155,9 +164,9 @@ class CFTBuoyDataDomain:
             station=orm_obj.station,
             created=orm_obj.created,
             as_of=orm_obj.as_of,
-            wave_height=orm_obj.wave_height,
-            period=orm_obj.period,
-            direction=orm_obj.direction,
+            wave_height=CFTBuoyRawDataUTC(**orm_obj.wave_height),
+            period=CFTBuoyRawDataUTC(**orm_obj.period),
+            direction=CFTBuoyRawDataUTC(**orm_obj.direction),
         )
 
     def persist(self, snapshot: "SpotSnapshot") -> "CFTBuoyData":
@@ -165,9 +174,9 @@ class CFTBuoyDataDomain:
             pk=self.pk,
             station_id=self.station.pk,
             as_of=self.as_of,
-            wave_height=self.wave_height,
-            period=self.period,
-            direction=self.direction,
+            wave_height=self.wave_height.to_dict(),
+            period=self.period.to_dict(),
+            direction=self.direction.to_dict(),
             snapshot=snapshot,
         )
 

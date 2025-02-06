@@ -36,7 +36,7 @@ DEBUG = env_config["DEBUG"] == "True"
 ALLOWED_HOSTS = ["surfin.duckdns.org"]
 
 if DEBUG:
-    ALLOWED_HOSTS = ["127.0.0.1"]
+    ALLOWED_HOSTS = ["*"]
 
 
 # Application definition

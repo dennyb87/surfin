@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from ninja import NinjaAPI, Schema
 from pydantic import UUID4
@@ -70,7 +71,7 @@ def timeseries(request, spot_uid: UUID4):
 
     df.rename(columns={"y": "wave_height"}, inplace=True)
 
-    daydf = pd.DataFrame({"hour": np.arange(0.0, 24.0, 0.5)})
+    daydf = pd.DataFrame({"hour": np.arange(0.0, 24.5, 0.5)})
     daydf = pd.merge_asof(daydf, df, on=["hour"], tolerance=0.5, direction="nearest")
     wssdf = pd.DataFrame(p.to_dict() for p in predictions)
     if not wssdf.empty:
@@ -86,8 +87,6 @@ def timeseries(request, spot_uid: UUID4):
     cms_ratio = average_human_height / wss_head_score
     daydf["wss1h"] = daydf.wss1h.shift(periods=2) * cms_ratio
     daydf.replace({np.nan: None}, inplace=True)
-    daydf["as_of"] = daydf.hour.apply(
-        lambda h: start_of_day.replace(hour=int(h), minute=int((h - int(h)) * 60))
-    )
+    daydf["as_of"] = daydf.hour.apply(lambda h: start_of_day + relativedelta(hours=h))
     daydf.drop(columns=["hour"], inplace=True)
     return daydf.to_dict(orient="records")

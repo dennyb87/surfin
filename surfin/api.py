@@ -81,7 +81,10 @@ def timeseries(request, spot_uid: UUID4):
     else:
         wssdf = pd.DataFrame({"wss1h": [], "hour": []})
     daydf = daydf.merge(wssdf[["hour", "wss1h"]], on=["hour"], how="outer")
-    daydf["wss1h"] = daydf.wss1h.shift(periods=2)
+    average_human_height = 165
+    wss_head_score = 4
+    cms_ratio = average_human_height / wss_head_score
+    daydf["wss1h"] = daydf.wss1h.shift(periods=2) * cms_ratio
     daydf.replace({np.nan: None}, inplace=True)
     daydf["as_of"] = daydf.hour.apply(
         lambda h: start_of_day.replace(hour=int(h), minute=int((h - int(h)) * 60))

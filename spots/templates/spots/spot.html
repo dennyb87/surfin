@@ -57,7 +57,7 @@
                         yAxisID: 'y',
                     },
                     {
-                        label: 'wss 1hour prediction',
+                        label: 'wave height 1h prediction',
                         data: wss1hPrediction,
                         borderWidth: 1,
                         cubicInterpolationMode: 'monotone',
@@ -96,16 +96,17 @@
                         suggestedMax: 500,
                     },
                     y1: {
-                        title: {
-                            display: true,
-                            text: "wave size score",
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value+' cm';
+                            }
                         },
                         type: 'linear',
                         display: true,
                         position: 'right',
                         beginAtZero: true,
                         suggestedMin: 0,
-                        suggestedMax: 5,
+                        suggestedMax: 250,
                         // grid line settings
                         grid: {
                             drawOnChartArea: false, // only want the grid lines for one axis to show up

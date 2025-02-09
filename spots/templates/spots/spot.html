@@ -5,7 +5,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.1.0/chartjs-plugin-annotation.min.js"></script>
     <link rel="stylesheet" href="/static/style.css"/>  
 </head>
@@ -26,14 +27,21 @@
         let resp = await fetch("/api/spots/{{ spot.uid }}/timeseries/");
         let data = await resp.json();
 
-        let snapshotCreatedSet = data.map(s => s.hour);
+        let snapshotCreatedSet = data.map(s => s.as_of);
         let waveHeightSet = data.map(s => s.wave_height);
         let wss1hPrediction = data.map(s => s.wss1h);
         let directionSet = data.map(s => s.direction);
         let periodSet = data.map(s => s.period);
 
         let now = new Date();
-        let graphCurrentHour = now.getUTCHours()*2+(now.getUTCMinutes()/60)*2;
+
+        let xConfig = {
+            type: 'time',
+            time: {
+                unit: 'hour',
+                tooltipFormat: 'yyyy-MM-dd HH:mm',
+            }
+        }
 
         new Chart(waveChartCTX, {
             type: 'line',
@@ -66,22 +74,16 @@
                             line1: {
                                 type: 'line',
                                 scaleID: 'x',
-                                value: graphCurrentHour,
+                                value: now,
                                 borderWidth: 1,
-                                label: {
-                                    display: true,
-                                    content: "now",
-                                    backgroundColor: 'rgba(0,0,0,0.6)',
-                                    position: "20%",
-                                }
                             },
                         }
                     }
                 },
                 scales: {
+                    x: xConfig,
                     y: {
                         ticks: {
-                            // Include a dollar sign in the ticks
                             callback: function(value, index, ticks) {
                                 return value+' cm';
                             }
@@ -138,22 +140,16 @@
                             line1: {
                                 type: 'line',
                                 scaleID: 'x',
-                                value: graphCurrentHour,
+                                value: now,
                                 borderWidth: 1,
-                                label: {
-                                    display: true,
-                                    content: "now",
-                                    backgroundColor: 'rgba(0,0,0,0.6)',
-                                    position: "20%",
-                                }
                             },
                         }
                     }
                 },
                 scales: {
+                    x: xConfig,
                     y: {
                         ticks: {
-                            // Include a dollar sign in the ticks
                             callback: function(value, index, ticks) {
                                 return value+' °';
                             }
@@ -194,19 +190,14 @@
                             line1: {
                                 type: 'line',
                                 scaleID: 'x',
-                                value: graphCurrentHour,
+                                value: now,
                                 borderWidth: 1,
-                                label: {
-                                    display: true,
-                                    content: "now",
-                                    backgroundColor: 'rgba(0,0,0,0.6)',
-                                    position: "20%",
-                                }
                             },
                         }
                     }
                 },
                 scales: {
+                    x: xConfig,
                     y: {
                         ticks: {
                             callback: function(value, index, ticks) {

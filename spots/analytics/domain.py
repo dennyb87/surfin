@@ -27,10 +27,10 @@ class SpotSnapshotV1:
     created: datetime
     buoy_data: "CFTBuoyDataDomain"
 
-    wave_size_score: Decimal
+    wave_size_score: Optional[float]
 
-    wind_direction: Decimal
-    wind_speed: Decimal
+    wind_direction: float
+    wind_speed: float
 
     wave_height_lag_0: float
     wave_height_lag_1: float
@@ -68,9 +68,13 @@ class SpotSnapshotV1:
             id=snapshot.pk,
             created=snapshot.created,
             buoy_data=buoy,
-            wave_size_score=snapshot.wave_size_score,
-            wind_direction=snapshot.wind_direction,
-            wind_speed=snapshot.wind_speed,
+            wave_size_score=(
+                float(snapshot.wave_size_score)
+                if snapshot.wave_size_score is not None
+                else None
+            ),
+            wind_direction=float(snapshot.wind_direction),
+            wind_speed=float(snapshot.wind_speed),
             wave_height_lag_0=wave_height_lag_0,
             wave_height_lag_1=wave_height_lag_1,
             wave_height_lag_2=wave_height_lag_2,

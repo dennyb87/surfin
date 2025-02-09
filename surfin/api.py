@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 import numpy as np
@@ -20,7 +21,7 @@ class Spot(Schema):
 
 
 class SpotSnapshot(Schema):
-    hour: float
+    as_of: datetime
     wss1h: Optional[float]
     wave_height: Optional[float]
     direction: Optional[float]
@@ -69,7 +70,7 @@ def timeseries(request, spot_uid: UUID4):
 
     df.rename(columns={"y": "wave_height"}, inplace=True)
 
-    daydf = pd.DataFrame({"hour": np.arange(0.0, 24.5, 0.5)})
+    daydf = pd.DataFrame({"hour": np.arange(0.0, 24.0, 0.5)})
     daydf = pd.merge_asof(daydf, df, on=["hour"], tolerance=0.5, direction="nearest")
     wssdf = pd.DataFrame(p.to_dict() for p in predictions)
     if not wssdf.empty:
@@ -82,4 +83,8 @@ def timeseries(request, spot_uid: UUID4):
     daydf = daydf.merge(wssdf[["hour", "wss1h"]], on=["hour"], how="outer")
     daydf["wss1h"] = daydf.wss1h.shift(periods=2)
     daydf.replace({np.nan: None}, inplace=True)
+    daydf["as_of"] = daydf.hour.apply(
+        lambda h: start_of_day.replace(hour=int(h), minute=int((h - int(h)) * 60))
+    )
+    daydf.drop(columns=["hour"], inplace=True)
     return daydf.to_dict(orient="records")

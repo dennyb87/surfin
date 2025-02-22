@@ -30,6 +30,16 @@ class SpotSnapshot(models.Model):
             return False
 
 
+class SnapshotDiscarded(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    snapshot = models.OneToOneField(
+        "spots.SpotSnapshot", related_name="discarded", on_delete=models.CASCADE
+    )
+
+    def __str__(self):
+        return f"Discarded {self.snapshot}"
+
+
 class SnapshotAssessment(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     snapshot = models.OneToOneField(SpotSnapshot, on_delete=models.PROTECT)

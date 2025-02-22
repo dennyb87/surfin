@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 
 from spots.constants import WaveSizeScore
 from spots.domain import SpotSnapshotDomain
-from spots.models import SnapshotAssessment, Spot, SpotSnapshot
+from spots.models import SnapshotAssessment, SnapshotDiscarded, Spot, SpotSnapshot
 
 
 class SpotAdmin(admin.ModelAdmin):
@@ -15,13 +15,31 @@ class SpotAdmin(admin.ModelAdmin):
 
 
 class SpotSnapshotAdmin(admin.ModelAdmin):
-    actions = ["make_assessment"]
+    actions = ["make_assessment", "discard"]
 
     list_display = ["__str__", "has_assessment", "create_assessment"]
 
     @admin.display(boolean=True)
     def has_assessment(self, obj):
         return obj.has_assessment
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(discarded__isnull=True)
+
+    @admin.action(description="Discard snapshots")
+    def discard(self, request, queryset):
+        discarded_events = []
+        for snapshot in queryset:
+            discarded = SnapshotDiscarded(snapshot=snapshot)
+            discarded_events.append(discarded)
+        SnapshotDiscarded.objects.bulk_create(discarded_events)
+        self.message_user(
+            request,
+            f"Succesfully discarded {len(discarded_events)} snapshots!",
+            level=messages.SUCCESS,
+        )
+        return
 
     @admin.action(description="Create a snapshot assessment")
     def make_assessment(self, request, queryset):
@@ -75,6 +93,11 @@ class SnapshotAssessmentAdmin(admin.ModelAdmin):
         return super().add_view(request, form_url=form_url, extra_context=extra_context)
 
 
+class SnapshotDiscardedAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(Spot, SpotAdmin)
 admin.site.register(SpotSnapshot, SpotSnapshotAdmin)
 admin.site.register(SnapshotAssessment, SnapshotAssessmentAdmin)
+admin.site.register(SnapshotDiscarded, SnapshotDiscardedAdmin)

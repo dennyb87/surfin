@@ -114,8 +114,12 @@ class SpotSnapshotTimeserieV1(list["SpotSnapshotV1"]):
         spot_assessments = []
 
         for snapshot in snapshots:
-            spot_assessment = SpotSnapshotV1.from_orm(snapshot)
-            spot_assessments.append(spot_assessment)
+            try:
+                spot_assessment = SpotSnapshotV1.from_orm(snapshot)
+            except IndexError:
+                continue
+            else:
+                spot_assessments.append(spot_assessment)
 
         return cls(spot_assessments)
 

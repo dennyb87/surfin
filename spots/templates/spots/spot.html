@@ -11,16 +11,24 @@
     <link rel="stylesheet" href="/static/style.css"/>  
 </head>
   <body>
-    <h1>{{ spot.name }}</h1>
-    <div class="main-chart">
-        <canvas id="waveChart"></canvas>
-    </div>
-    <div class="side-chart">
-        <canvas id="dirChart"></canvas>
-        <canvas id="periodChart"></canvas>
+    <div id="main">
+        <h1>{{ spot.name }}</h1>
+        <div class="main-chart">
+            <canvas id="heightPredictionChart"></canvas>
+        </div>
+        <div id="webcam">
+            <iframe rel="nofollow" id="iframe" src="https://ipcamlive.com/player/player.php?alias=6241bbf538321&amp;autoplay=0" allowfullscreen="true"></iframe>
+        </div>
+        <div id="buoyData">
+            <h2>Buoy data</h2>
+            <canvas id="heightChart"></canvas>
+            <canvas id="dirChart"></canvas>
+            <canvas id="periodChart"></canvas>
+        </div>
     </div>
     <script type="module">
-        const waveChartCTX = document.getElementById('waveChart');
+        const heightPredictionChartCTX = document.getElementById('heightPredictionChart');
+        const heightChartCTX = document.getElementById('heightChart');
         const dirChartCTX = document.getElementById('dirChart');
         const periodChartCTX = document.getElementById('periodChart');
 
@@ -43,7 +51,57 @@
             }
         }
 
-        new Chart(waveChartCTX, {
+        new Chart(heightPredictionChartCTX, {
+            type: 'line',
+            data: {
+                labels: snapshotCreatedSet,
+                datasets: [
+                    {
+                        label: 'wave height on shore 1h prediction',
+                        data: wss1hPrediction,
+                        borderWidth: 1,
+                        cubicInterpolationMode: 'monotone',
+                        tension: 0.4,
+                        yAxisID: 'y',
+                        borderColor: '#FF4081',
+                        backgroundColor: '#FF80AB',
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                scaleID: 'x',
+                                value: now,
+                                borderWidth: 1,
+                            },
+                        }
+                    }
+                },
+                scales: {
+                    x: xConfig,
+                    y: {
+                        ticks: {
+                            callback: function(value, index, ticks) {
+                                return value+' cm';
+                            }
+                        },
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        suggestedMin: 0,
+                        suggestedMax: 250,
+                    },
+                },
+            }
+        });
+
+        new Chart(heightChart, {
             type: 'line',
             data: {
                 labels: snapshotCreatedSet,
@@ -55,14 +113,6 @@
                         cubicInterpolationMode: 'monotone',
                         tension: 0.4,
                         yAxisID: 'y',
-                    },
-                    {
-                        label: 'wave height 1h prediction',
-                        data: wss1hPrediction,
-                        borderWidth: 1,
-                        cubicInterpolationMode: 'monotone',
-                        tension: 0.4,
-                        yAxisID: 'y1',
                     },
                 ]
             },
@@ -94,23 +144,6 @@
                         beginAtZero: true,
                         suggestedMin: 0,
                         suggestedMax: 500,
-                    },
-                    y1: {
-                        ticks: {
-                            callback: function(value, index, ticks) {
-                                return value+' cm';
-                            }
-                        },
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        beginAtZero: true,
-                        suggestedMin: 0,
-                        suggestedMax: 250,
-                        // grid line settings
-                        grid: {
-                            drawOnChartArea: false, // only want the grid lines for one axis to show up
-                        },
                     },
                 },
             }

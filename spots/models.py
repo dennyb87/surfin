@@ -20,7 +20,7 @@ class SpotSnapshot(models.Model):
     spot = models.ForeignKey("spots.Spot", on_delete=models.PROTECT)
 
     def __str__(self):
-        return f"Snapshot {self.spot.name} {self.created} #{self.pk}"
+        return f"Snapshot #{self.spot_id} {self.created} #{self.pk}"
 
     @property
     def has_assessment(self):
